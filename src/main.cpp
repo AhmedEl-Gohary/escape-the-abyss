@@ -34,35 +34,29 @@ ModelLoader modelLoader1, modelLoader2;
 glm::mat4 projection, view;
 
 /**
- * @brief Load and compile a shader from a file
+ * @brief Load shader from file
  *
  * @param shaderPath Path to the shader file
- * @param shaderType The type of shader (e.g., GL_VERTEX_SHADER, GL_FRAGMENT_SHADER)
- * @return GLuint The shader ID
+ * @param shaderType Type of shader to load (vertex or fragment)
+ * @return GLuint Shader ID or 0 if loading fails
  *
- * This function loads a shader file from disk, compiles it, and returns the
- * compiled shader ID. If compilation fails, an error message is printed.
+ * This function reads a shader file, compiles the shader, and checks for errors.
  */
 GLuint loadShader(const char* shaderPath, GLenum shaderType) {
-    // Open shader file
     std::ifstream shaderFile(shaderPath);
     if (!shaderFile.is_open()) {
         std::cerr << "Failed to load shader file: " << shaderPath << std::endl;
         return 0;
     }
-
-    // Read shader code from the file
     std::stringstream shaderStream;
     shaderStream << shaderFile.rdbuf();
     std::string shaderCode = shaderStream.str();
     const char* shaderSource = shaderCode.c_str();
 
-    // Create shader object
     GLuint shader = glCreateShader(shaderType);
     glShaderSource(shader, 1, &shaderSource, nullptr);
     glCompileShader(shader);
 
-    // Check shader compilation status
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -75,121 +69,137 @@ GLuint loadShader(const char* shaderPath, GLenum shaderType) {
 }
 
 /**
- * @brief Load a shader program by linking vertex and fragment shaders
+ * @brief Create a shader program from vertex and fragment shaders
  *
- * @param vertexShaderPath Path to the vertex shader file
- * @param fragmentShaderPath Path to the fragment shader file
- * @return GLuint The shader program ID
+ * @param vertexPath Path to the vertex shader file
+ * @param fragmentPath Path to the fragment shader file
+ * @return GLuint Shader program ID
  *
- * This function loads the vertex and fragment shaders, compiles them, and links
- * them into a shader program. The program ID is returned. If linking fails, an
- * error message is printed.
+ * This function creates, attaches, and links vertex and fragment shaders into a shader program.
  */
-GLuint loadShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath) {
-    GLuint vertexShader = loadShader(vertexShaderPath, GL_VERTEX_SHADER);
-    GLuint fragmentShader = loadShader(fragmentShaderPath, GL_FRAGMENT_SHADER);
+GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
+    GLuint vertexShader = loadShader(vertexPath, GL_VERTEX_SHADER);
+    GLuint fragmentShader = loadShader(fragmentPath, GL_FRAGMENT_SHADER);
 
-    // Create shader program and link shaders
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
+    GLuint curShaderProgram = glCreateProgram();
+    glAttachShader(curShaderProgram, vertexShader);
+    glAttachShader(curShaderProgram, fragmentShader);
+    glLinkProgram(curShaderProgram);
 
-    // Check linking status
     GLint success;
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    glGetProgramiv(curShaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cerr << "Shader program linking failed: " << infoLog << std::endl;
+        glGetProgramInfoLog(curShaderProgram, 512, nullptr, infoLog);
+        std::cerr << "Program linking failed: " << infoLog << std::endl;
     }
 
-    // Clean up shaders as they're no longer needed after being linked
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    return shaderProgram;
+    return curShaderProgram;
 }
 
 /**
- * @brief Initialize OpenGL settings
+ * @brief Setup OpenGL context and load models
  *
- * This function sets up the viewport, configures the camera projection matrix,
- * and initializes the shader program.
+ * This function initializes OpenGL settings, such as enabling depth testing,
+ * creates the shader program, and loads 3D models using the ModelLoader.
  */
-void initializeOpenGL() {
-    // Initialize shaders
-    shaderProgram = loadShaderProgram("../shaders/vertex_shader.glsl", "../shaders/fragment_shader.glsl");
+void setupOpenGL() {
+    glEnable(GL_DEPTH_TEST); // Enable depth test for 3D rendering
+    shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
 
-    // Set up projection matrix
-    projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
-
-    // Set up view matrix (camera position and orientation)
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-    // Initialize model loaders
-    modelLoader1.loadModel("model1");
-    modelLoader2.loadModel("model2");
+    // Load models
+    modelLoader1.loadModel("monster");
+    modelLoader2.loadModel("spider_man");
 }
 
 /**
- * @brief Process keyboard inputs for camera movement
+ * @brief Handle window resizing
  *
- * This function updates the camera position based on keyboard inputs.
- * WASD keys are used for movement, and R and F keys control the speed.
+ * @param width New width of the window
+ * @param height New height of the window
+ *
+ * This function adjusts the viewport size and updates the projection matrix
+ * to maintain the aspect ratio.
  */
-void processKeyboardInput() {
-    if (keys['W']) {
-        cameraPos += cameraSpeed * cameraFront;
-    }
-    if (keys['S']) {
-        cameraPos -= cameraSpeed * cameraFront;
-    }
-    if (keys['A']) {
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    }
-    if (keys['D']) {
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    }
-    if (keys['R']) {
-        cameraSpeed += 0.01f;
-    }
-    if (keys['F']) {
-        cameraSpeed -= 0.01f;
-    }
+void reshape(int width, int height) {
+    glViewport(0, 0, width, height); // Set the viewport size
+    projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f); // Adjust projection
 }
 
 /**
- * @brief Process mouse movement to update camera direction
+ * @brief Keyboard key down event handler
  *
- * This function updates the yaw and pitch based on mouse movements, and updates
- * the camera front vector to reflect changes in direction.
+ * @param key The key that was pressed
+ * @param x The x-coordinate of the mouse pointer
+ * @param y The y-coordinate of the mouse pointer
  *
- * @param xpos Current x-position of the mouse
- * @param ypos Current y-position of the mouse
+ * This function updates the state of the keyboard when a key is pressed.
  */
-void processMouseMovement(float xpos, float ypos) {
+void keyboardDown(unsigned char key, int x, int y) {
+    keys[key] = true;
+}
+
+/**
+ * @brief Keyboard key up event handler
+ *
+ * @param key The key that was released
+ * @param x The x-coordinate of the mouse pointer
+ * @param y The y-coordinate of the mouse pointer
+ *
+ * This function updates the state of the keyboard when a key is released.
+ */
+void keyboardUp(unsigned char key, int x, int y) {
+    keys[key] = false;
+}
+
+/**
+ * @brief Process continuous key press for camera movement
+ *
+ * This function updates the camera position based on the currently pressed keys.
+ */
+void processKeyboard() {
+    // Movement along camera's front and right vectors
+    if (keys['w']) cameraPos += cameraSpeed * cameraFront;
+    if (keys['s']) cameraPos -= cameraSpeed * cameraFront;
+    if (keys['a']) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (keys['d']) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+/**
+ * @brief Mouse motion callback for camera control
+ *
+ * @param x The x-coordinate of the mouse pointer
+ * @param y The y-coordinate of the mouse pointer
+ *
+ * This function updates the camera's yaw and pitch based on mouse movement.
+ */
+void mouseMotion(int x, int y) {
     if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
+        lastX = x;
+        lastY = y;
         firstMouse = false;
     }
 
-    float xOffset = xpos - lastX;
-    float yOffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
+    float xoffset = x - lastX;
+    float yoffset = lastY - y; // Reversed since y-coordinates go from bottom to top
+    lastX = x;
+    lastY = y;
 
-    float sensitivity = 0.05f;
-    xOffset *= sensitivity;
-    yOffset *= sensitivity;
+    const float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
 
-    yaw   += xOffset;
-    pitch += yOffset;
+    yaw   += xoffset;
+    pitch += yoffset;
 
-    if (pitch > 89.0f) pitch = 89.0f;
+    // Constrain pitch to prevent screen flip
+    if (pitch > 89.0f)  pitch = 89.0f;
     if (pitch < -89.0f) pitch = -89.0f;
 
+    // Calculate new front vector
     glm::vec3 front;
     front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     front.y = sin(glm::radians(pitch));
@@ -198,28 +208,120 @@ void processMouseMovement(float xpos, float ypos) {
 }
 
 /**
- * @brief Render the scene with updated camera and model
+ * @brief Render the scene
  *
- * This function clears the screen, updates the view matrix, and renders
- * the models using the loaded shader program.
+ * This function clears the screen, sets the matrices for rendering,
+ * and draws the loaded 3D models.
  */
-void render() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+void renderScene() {
+    // Process continuous keyboard input
+    processKeyboard();
 
-    // Use the shader program
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(shaderProgram);
 
-    // Update view matrix based on camera position and orientation
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    // Adjust projection with wider aspect ratio
+    projection = glm::perspective(glm::radians(45.0f), 2400.0f / 1800.0f, 0.1f, 100.0f);
+
+    // Update view matrix with camera movement
+    view = glm::lookAt(
+            cameraPos,            // Camera position
+            cameraPos + cameraFront,  // Look at point (camera position + front vector)
+            cameraUp              // Up vector
+    );
+
+    // Position Spiderman on the left
+    glm::mat4 spidermanModel = glm::mat4(1.0f);
+    spidermanModel = glm::translate(spidermanModel, glm::vec3(-2.0f, 0.0f, 0.0f)); // Move left
+    spidermanModel = glm::rotate(spidermanModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate to face right
+    spidermanModel = glm::scale(spidermanModel, glm::vec3(1.5f, 1.5f, 1.5f));
+
+    // Position Monster on the right
+    glm::mat4 monsterModel = glm::mat4(1.0f);
+    monsterModel = glm::translate(monsterModel, glm::vec3(2.0f, 0.0f, 0.0f)); // Move right
+    monsterModel = glm::rotate(monsterModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate to face left
+    monsterModel = glm::scale(monsterModel, glm::vec3(1.5f, 1.5f, 1.5f));
+
+    // Set shader uniform variables
+    GLuint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
     GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
+
+    // Set projection and view matrices
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-    GLuint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    // Draw Spiderman
+    {
+        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(spidermanModel));
+        modelLoader2.draw(); // Spiderman model
+    }
 
-    // Draw models
-    modelLoader1.draw();
-    modelLoader2.draw();
+    // Draw Monster
+    {
+        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(monsterModel));
+        modelLoader1.draw(); // Monster model
+    }
 
     glutSwapBuffers();
+}
+
+/**
+ * @brief Update function for the render loop
+ *
+ * @param value Timer value (unused)
+ *
+ * This function triggers a redraw of the scene and sets up a timer
+ * for continuous updates.
+ */
+void update(int value) {
+    glutPostRedisplay();
+    glutTimerFunc(16, update, 0);
+}
+
+/**
+ * @brief Main entry point of the application
+ *
+ * @param argc Argument count
+ * @param argv Argument values
+ * @return int Exit status
+ *
+ * This function initializes GLUT, sets up the rendering context,
+ * and enters the main event loop.
+ */
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+
+    // Increase window size to 3x
+    glutInitWindowSize(WIDTH, HEIGHT);
+    glutCreateWindow("Escape The Abyss");
+
+    // Initialize GLEW after creating the window
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        std::cerr << "Error initializing GLEW: " << glewGetErrorString(err) << std::endl;
+        return -1;
+    }
+
+    setupOpenGL(); // Set up OpenGL and load the model
+
+    // Register callbacks
+    glutDisplayFunc(renderScene);
+    glutReshapeFunc(reshape);
+    glutTimerFunc(25, update, 0);
+
+    // Keyboard callbacks
+    glutKeyboardFunc(keyboardDown);
+    glutKeyboardUpFunc(keyboardUp);
+
+    // Mouse callbacks
+    glutPassiveMotionFunc(mouseMotion);
+
+    // Hide cursor and capture it
+    glutSetCursor(GLUT_CURSOR_NONE);
+
+    glutMainLoop();
+    return 0;
 }

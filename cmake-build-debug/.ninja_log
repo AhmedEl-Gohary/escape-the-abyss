@@ -1,7 +1,8 @@
 # ninja log v5
-2	1259	1733099109337821333	CMakeFiles/EscapeTheAbyss.dir/src/model_loader.cpp.o	9a2246cc71cc470f
-2	879	1733099228825291321	CMakeFiles/EscapeTheAbyss.dir/src/main.cpp.o	a06aa7b48c053c05
-879	972	1733099228917291676	EscapeTheAbyss	58fb00b574f410e5
-2	936	1733099424704026159	CMakeFiles/EscapeTheAbyss.dir/src/main.cpp.o	9e181238fa24dae
-2	1345	1733099425112027653	CMakeFiles/EscapeTheAbyss.dir/src/model_loader.cpp.o	aa31c1164eaffeaa
+2	1125	1733100682861500234	CMakeFiles/EscapeTheAbyss.dir/src/model_loader.cpp.o	aa31c1164eaffeaa
+2	793	1733100682530499506	CMakeFiles/EscapeTheAbyss.dir/src/main.cpp.o	9e181238fa24dae
 1345	1460	1733099425226028070	EscapeTheAbyss	58fb00b574f410e5
+1	810	1733100933322076534	CMakeFiles/EscapeTheAbyss.dir/src/main.cpp.o	9e181238fa24dae
+810	888	1733100933398076715	EscapeTheAbyss	58fb00b574f410e5
+1	824	1733101276627924081	CMakeFiles/EscapeTheAbyss.dir/src/main.cpp.o	9e181238fa24dae
+824	918	1733101276719924314	EscapeTheAbyss	58fb00b574f410e5
