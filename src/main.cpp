@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "model_loader.h"
+#include "camera.h"
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -15,21 +16,18 @@ const int WIDTH = 2400, HEIGHT = 1800;
 const float WOODS_SIZE = 100.0f;  // Size of the woods area
 const int TREE_COUNT = 30;        // Number of trees to generate
 const float TREE_RADIUS = 1.0f;    // Collision radius for trees
-const float CAMERA_HEIGHT = -1.5f; // Fixed height of the camera
 
 // Camera system variables
-glm::vec3 cameraPos   = glm::vec3(0.0f, CAMERA_HEIGHT, 5.0f);
+glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Mouse movement variables
-float yaw   = -90.0f;  // Yaw initialized to -90 degrees
-float pitch =  0.0f;
-float centerX =  HEIGHT / 2.0f;
-float centerY =  HEIGHT / 2.0f;
+float yaw = -90.0f, pitch = 0.0f;
+float centerX = WIDTH / 2.0f;
+float centerY = HEIGHT / 2.0f;
 
-// Movement speed
-float cameraSpeed = 0.5f;
+Camera camera (cameraPos, cameraFront, cameraUp, yaw, pitch, centerX, centerY);
 
 // Keyboard state tracking
 bool keys[256] = {false};
@@ -142,12 +140,12 @@ void setupOpenGL() {
     generateForest(TREE_COUNT); // Generate trees
 }
 
-
 void reshape(int width, int height) {
     glViewport(0, 0, width, height);
-    projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f); // Adjust projection
+    projection = glm::perspective(glm::radians(45.0f),
+                                  (float)width / (float)height,
+                                  0.1f, 100.0f); // Adjust projection
 }
-
 
 void keyboardDown(unsigned char key, int x, int y) {
     keys[key] = true;
@@ -159,18 +157,12 @@ void keyboardUp(unsigned char key, int x, int y) {
 
 bool checkCollision(const glm::vec3& cameraPosition, const glm::vec3& treePos) {
     float distance = glm::length(cameraPosition - treePos);
-    return distance < abs(CAMERA_HEIGHT) + TREE_RADIUS;
+    return distance < abs(camera.getCameraHeight()) + TREE_RADIUS;
 }
 
 void processKeyboard() {
-    glm::vec3 newCameraPos = cameraPos;
-
-    if (keys['w']) newCameraPos += cameraSpeed * cameraFront;
-    if (keys['s']) newCameraPos -= cameraSpeed * cameraFront;
-    if (keys['a']) newCameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    if (keys['d']) newCameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    glm::vec3 newCameraPos = camera.getNewCameraPosition(keys);
     if (keys[27]) exit(0);
-    newCameraPos.y = CAMERA_HEIGHT;
 
     bool collision = false;
     for (const auto& transform : treeTransformations) {
@@ -181,48 +173,11 @@ void processKeyboard() {
         }
     }
 
-    if (!collision) cameraPos = newCameraPos;
-
+    if (!collision) camera.setCameraPos(newCameraPos);
 }
 
 void mouseMotion(int x, int y) {
-    // Static variables to track mouse movement deltas
-    static int lastX = 0;
-    static int lastY = 0;
-    static bool firstMouse = true;
-
-    if (firstMouse) {
-        lastX = x;
-        lastY = y;
-        firstMouse = false;
-        return;
-    }
-
-    // Calculate the offset since last mouse movement
-    float xoffset = x - lastX;
-    float yoffset = lastY - y;  // Reversed to match your original code
-
-    // Update last positions
-    lastX = x;
-    lastY = y;
-
-    const float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    yaw   += xoffset;
-    pitch += yoffset;
-
-    // Clamp pitch to prevent camera flipping
-    if (pitch > 89.0f)  pitch = 89.0f;
-    if (pitch < -89.0f) pitch = -89.0f;
-
-    // Calculate new camera front vector
-    glm::vec3 front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(front);
+    camera.adjustCameraCenter(x, y);
 }
 
 void renderScene() {
@@ -231,7 +186,9 @@ void renderScene() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(shaderProgram);
 
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    view = glm::lookAt(camera.getCameraPos(),
+                       camera.getCameraCenter(),
+                       camera.getCameraUp());
 
     GLuint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
     GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
