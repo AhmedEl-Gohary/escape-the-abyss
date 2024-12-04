@@ -7,41 +7,45 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "model_loader.h"
+#include <vector>
+#include <cstdlib>
+#include <ctime>
 
 const int WIDTH = 2400, HEIGHT = 1800;
+const float WOODS_SIZE = 100.0f;  // Size of the woods area
+const int TREE_COUNT = 30;        // Number of trees to generate
+const float TREE_RADIUS = 1.0f;    // Collision radius for trees
+const float CAMERA_HEIGHT = -1.5f; // Fixed height of the camera
 
 // Camera system variables
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 5.0f);
+glm::vec3 cameraPos   = glm::vec3(0.0f, CAMERA_HEIGHT, 5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Mouse movement variables
-float yaw   = -90.0f;  // Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right
+float yaw   = -90.0f;  // Yaw initialized to -90 degrees
 float pitch =  0.0f;
 float lastX =  WIDTH / 2.0f;
 float lastY =  HEIGHT / 2.0f;
+float centerX =  HEIGHT / 2.0f;
+float centerY =  HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // Movement speed
-float cameraSpeed = 0.05f;
+float cameraSpeed = 0.5f;
 
 // Keyboard state tracking
 bool keys[256] = {false};
 
 // Shader and model loader (global variables)
 GLuint shaderProgram;
-ModelLoader modelLoader1, modelLoader2;
+ModelLoader modelLoader;  // Model loader for the main model
 glm::mat4 projection, view;
 
-/**
- * @brief Load shader from file
- *
- * @param shaderPath Path to the shader file
- * @param shaderType Type of shader to load (vertex or fragment)
- * @return GLuint Shader ID or 0 if loading fails
- *
- * This function reads a shader file, compiles the shader, and checks for errors.
- */
+std::vector<glm::mat4> treeTransformations; // Store tree transformations
+ModelLoader treeModel;  // Model loader for tree models
+
+// Load shader from file
 GLuint loadShader(const char* shaderPath, GLenum shaderType) {
     std::ifstream shaderFile(shaderPath);
     if (!shaderFile.is_open()) {
@@ -68,15 +72,7 @@ GLuint loadShader(const char* shaderPath, GLenum shaderType) {
     return shader;
 }
 
-/**
- * @brief Create a shader program from vertex and fragment shaders
- *
- * @param vertexPath Path to the vertex shader file
- * @param fragmentPath Path to the fragment shader file
- * @return GLuint Shader program ID
- *
- * This function creates, attaches, and links vertex and fragment shaders into a shader program.
- */
+// Create a shader program from vertex and fragment shaders
 GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
     GLuint vertexShader = loadShader(vertexPath, GL_VERTEX_SHADER);
     GLuint fragmentShader = loadShader(fragmentPath, GL_FRAGMENT_SHADER);
@@ -100,91 +96,118 @@ GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
     return curShaderProgram;
 }
 
-/**
- * @brief Setup OpenGL context and load models
- *
- * This function initializes OpenGL settings, such as enabling depth testing,
- * creates the shader program, and loads 3D models using the ModelLoader.
- */
+// Generate a forest of trees with random positions
+void generateForest(int treeCount) {
+    treeModel.loadModel("tree");
+    srand(static_cast<unsigned int>(time(nullptr))); // Seed for randomness
+
+    std::vector<glm::vec3> treePositions; // Store positions of trees
+    float minDistance = TREE_RADIUS * 15.0f; // Increase this value for more spacing
+
+    while (treePositions.size() < treeCount) {
+        glm::mat4 treeTransform = glm::mat4(1.0f);
+        float x = static_cast<float>(rand()) / RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
+        float z = static_cast<float>(rand()) / RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
+        glm::vec3 newTreePos = glm::vec3(x, 0, z);
+
+        // Check if the new position is too close to existing trees
+        bool tooClose = false;
+        for (const auto& pos : treePositions) {
+            if (glm::length(newTreePos - pos) < minDistance) {
+                tooClose = true;
+                break;
+            }
+        }
+
+        // If the position is not too close, add it
+        if (!tooClose) {
+            treeTransform = glm::translate(treeTransform, newTreePos);
+            treeTransform = glm::scale(treeTransform, glm::vec3(4, 4, 4));
+
+            treeTransformations.push_back(treeTransform);
+            treePositions.push_back(newTreePos); // Store the position
+        }
+    }
+}
+
+// Render all trees in the forest
+void renderForest() {
+    for (const auto& transform : treeTransformations) {
+        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform));
+        treeModel.draw();
+    }
+}
+
+// Setup OpenGL context and load models
 void setupOpenGL() {
     glEnable(GL_DEPTH_TEST); // Enable depth test for 3D rendering
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
-
-    // Load models
-    modelLoader1.loadModel("monster");
-    modelLoader2.loadModel("spider_man");
+    modelLoader.loadModel("monster"); // Load the main model
+    generateForest(TREE_COUNT); // Generate trees
 }
 
-/**
- * @brief Handle window resizing
- *
- * @param width New width of the window
- * @param height New height of the window
- *
- * This function adjusts the viewport size and updates the projection matrix
- * to maintain the aspect ratio.
- */
+
 void reshape(int width, int height) {
-    glViewport(0, 0, width, height); // Set the viewport size
+    glViewport(0, 0, width, height);
     projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f); // Adjust projection
 }
 
-/**
- * @brief Keyboard key down event handler
- *
- * @param key The key that was pressed
- * @param x The x-coordinate of the mouse pointer
- * @param y The y-coordinate of the mouse pointer
- *
- * This function updates the state of the keyboard when a key is pressed.
- */
+
 void keyboardDown(unsigned char key, int x, int y) {
     keys[key] = true;
 }
 
-/**
- * @brief Keyboard key up event handler
- *
- * @param key The key that was released
- * @param x The x-coordinate of the mouse pointer
- * @param y The y-coordinate of the mouse pointer
- *
- * This function updates the state of the keyboard when a key is released.
- */
 void keyboardUp(unsigned char key, int x, int y) {
     keys[key] = false;
 }
 
-/**
- * @brief Process continuous key press for camera movement
- *
- * This function updates the camera position based on the currently pressed keys.
- */
-void processKeyboard() {
-    // Movement along camera's front and right vectors
-    if (keys['w']) cameraPos += cameraSpeed * cameraFront;
-    if (keys['s']) cameraPos -= cameraSpeed * cameraFront;
-    if (keys['a']) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    if (keys['d']) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+bool checkCollision(const glm::vec3& cameraPos, const glm::vec3& treePos) {
+    float distance = glm::length(cameraPos - treePos);
+    return distance < abs(CAMERA_HEIGHT) + TREE_RADIUS;
 }
 
-/**
- * @brief Mouse motion callback for camera control
- *
- * @param x The x-coordinate of the mouse pointer
- * @param y The y-coordinate of the mouse pointer
- *
- * This function updates the camera's yaw and pitch based on mouse movement.
- */
+void processKeyboard() {
+    glm::vec3 newCameraPos = cameraPos;
+
+    if (keys['w']) newCameraPos += cameraSpeed * cameraFront;
+    if (keys['s']) newCameraPos -= cameraSpeed * cameraFront;
+    if (keys['a']) newCameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (keys['d']) newCameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (keys[27]) exit(0);
+    newCameraPos.y = CAMERA_HEIGHT;
+
+    bool collision = false;
+    for (const auto& transform : treeTransformations) {
+        glm::vec3 treePos = glm::vec3(transform[3]);
+        if (checkCollision(newCameraPos, treePos)) {
+            collision = true;
+            break;
+        }
+    }
+
+    if (!collision) cameraPos = newCameraPos;
+
+}
+
 void mouseMotion(int x, int y) {
+    // Static variables to track mouse movement deltas
+    static int lastX = 0;
+    static int lastY = 0;
+    static bool firstMouse = true;
+
     if (firstMouse) {
         lastX = x;
         lastY = y;
         firstMouse = false;
+        return;
     }
 
+    // Calculate the offset since last mouse movement
     float xoffset = x - lastX;
-    float yoffset = lastY - y; // Reversed since y-coordinates go from bottom to top
+    float yoffset = lastY - y;  // Reversed to match your original code
+
+    // Update last positions
     lastX = x;
     lastY = y;
 
@@ -195,11 +218,11 @@ void mouseMotion(int x, int y) {
     yaw   += xoffset;
     pitch += yoffset;
 
-    // Constrain pitch to prevent screen flip
+    // Clamp pitch to prevent camera flipping
     if (pitch > 89.0f)  pitch = 89.0f;
     if (pitch < -89.0f) pitch = -89.0f;
 
-    // Calculate new front vector
+    // Calculate new camera front vector
     glm::vec3 front;
     front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     front.y = sin(glm::radians(pitch));
@@ -207,119 +230,53 @@ void mouseMotion(int x, int y) {
     cameraFront = glm::normalize(front);
 }
 
-/**
- * @brief Render the scene
- *
- * This function clears the screen, sets the matrices for rendering,
- * and draws the loaded 3D models.
- */
 void renderScene() {
-    // Process continuous keyboard input
     processKeyboard();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(shaderProgram);
 
-    // Adjust projection with wider aspect ratio
-    projection = glm::perspective(glm::radians(45.0f), 2400.0f / 1800.0f, 0.1f, 100.0f);
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-    // Update view matrix with camera movement
-    view = glm::lookAt(
-            cameraPos,            // Camera position
-            cameraPos + cameraFront,  // Look at point (camera position + front vector)
-            cameraUp              // Up vector
-    );
-
-    // Position Spiderman on the left
-    glm::mat4 spidermanModel = glm::mat4(1.0f);
-    spidermanModel = glm::translate(spidermanModel, glm::vec3(-2.0f, 0.0f, 0.0f)); // Move left
-    spidermanModel = glm::rotate(spidermanModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate to face right
-    spidermanModel = glm::scale(spidermanModel, glm::vec3(1.5f, 1.5f, 1.5f));
-
-    // Position Monster on the right
-    glm::mat4 monsterModel = glm::mat4(1.0f);
-    monsterModel = glm::translate(monsterModel, glm::vec3(2.0f, 0.0f, 0.0f)); // Move right
-    monsterModel = glm::rotate(monsterModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate to face left
-    monsterModel = glm::scale(monsterModel, glm::vec3(1.5f, 1.5f, 1.5f));
-
-    // Set shader uniform variables
     GLuint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
     GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
 
-    // Set projection and view matrices
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-    // Draw Spiderman
-    {
-        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(spidermanModel));
-        modelLoader2.draw(); // Spiderman model
-    }
-
-    // Draw Monster
-    {
-        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(monsterModel));
-        modelLoader1.draw(); // Monster model
-    }
-
+    renderForest();
     glutSwapBuffers();
 }
 
-/**
- * @brief Update function for the render loop
- *
- * @param value Timer value (unused)
- *
- * This function triggers a redraw of the scene and sets up a timer
- * for continuous updates.
- */
 void update(int value) {
     glutPostRedisplay();
     glutTimerFunc(16, update, 0);
 }
 
-/**
- * @brief Main entry point of the application
- *
- * @param argc Argument count
- * @param argv Argument values
- * @return int Exit status
- *
- * This function initializes GLUT, sets up the rendering context,
- * and enters the main event loop.
- */
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-
-    // Increase window size to 3x
     glutInitWindowSize(WIDTH, HEIGHT);
     glutCreateWindow("Escape The Abyss");
 
-    // Initialize GLEW after creating the window
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         std::cerr << "Error initializing GLEW: " << glewGetErrorString(err) << std::endl;
         return -1;
     }
 
-    setupOpenGL(); // Set up OpenGL and load the model
+    setupOpenGL();
 
-    // Register callbacks
+    glutPassiveMotionFunc(mouseMotion);
+    glutWarpPointer(WIDTH / 2.0f, HEIGHT / 2.0f);
+
     glutDisplayFunc(renderScene);
     glutReshapeFunc(reshape);
-    glutTimerFunc(25, update, 0);
-
-    // Keyboard callbacks
+    update(1000);
     glutKeyboardFunc(keyboardDown);
     glutKeyboardUpFunc(keyboardUp);
-
-    // Mouse callbacks
     glutPassiveMotionFunc(mouseMotion);
 
-    // Hide cursor and capture it
     glutSetCursor(GLUT_CURSOR_NONE);
 
     glutMainLoop();
