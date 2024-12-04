@@ -25,7 +25,8 @@ endif()
 include_directories(${ASSIMP_INCLUDE_DIR})
 
 # Add executable
-add_executable(${PROJECT_NAME} ${SRC_FILES})
+add_executable(${PROJECT_NAME} ${SRC_FILES}
+        include/camera.h)
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME}
