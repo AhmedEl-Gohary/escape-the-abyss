@@ -25,11 +25,8 @@ glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 // Mouse movement variables
 float yaw   = -90.0f;  // Yaw initialized to -90 degrees
 float pitch =  0.0f;
-float lastX =  WIDTH / 2.0f;
-float lastY =  HEIGHT / 2.0f;
 float centerX =  HEIGHT / 2.0f;
 float centerY =  HEIGHT / 2.0f;
-bool firstMouse = true;
 
 // Movement speed
 float cameraSpeed = 0.5f;
@@ -106,8 +103,8 @@ void generateForest(int treeCount) {
 
     while (treePositions.size() < treeCount) {
         glm::mat4 treeTransform = glm::mat4(1.0f);
-        float x = static_cast<float>(rand()) / RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
-        float z = static_cast<float>(rand()) / RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
+        float x = static_cast<float>(rand()) / (float) RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
+        float z = static_cast<float>(rand()) / (float) RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
         glm::vec3 newTreePos = glm::vec3(x, 0, z);
 
         // Check if the new position is too close to existing trees
@@ -162,8 +159,8 @@ void keyboardUp(unsigned char key, int x, int y) {
     keys[key] = false;
 }
 
-bool checkCollision(const glm::vec3& cameraPos, const glm::vec3& treePos) {
-    float distance = glm::length(cameraPos - treePos);
+bool checkCollision(const glm::vec3& cameraPosition, const glm::vec3& treePos) {
+    float distance = glm::length(cameraPosition - treePos);
     return distance < abs(CAMERA_HEIGHT) + TREE_RADIUS;
 }
 
