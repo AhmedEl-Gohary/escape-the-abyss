@@ -1,3 +1,0 @@
-/home/ahmed/Public/GUC/Semester 7/DMET 502 Computer Graphics/escape-the-abyss/cmake-build-debug/CMakeFiles/EscapeTheAbyss.dir
-/home/ahmed/Public/GUC/Semester 7/DMET 502 Computer Graphics/escape-the-abyss/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/ahmed/Public/GUC/Semester 7/DMET 502 Computer Graphics/escape-the-abyss/cmake-build-debug/CMakeFiles/rebuild_cache.dir
