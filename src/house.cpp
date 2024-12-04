@@ -2,7 +2,7 @@
 
 void House::generatePlayer() {
     camera.setCameraHeight(2.0f);
-    playerModel.loadModel("spider_man");
+    playerModel.loadModel("spiderman");
     glm::mat4 playerTransform (1.0f);
     glm::vec3 playerPos (0, 0, 0);
     playerTransformation = playerTransform;
@@ -23,6 +23,12 @@ void House::init() {
 }
 
 void House::updateScene() {
+    // Calculate delta time
+    static float last_frame_time = 0.0f;
+    float current_frame = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    float delta_time = current_frame - last_frame_time;
+    last_frame_time = current_frame;
+//    playerModel.updateAnimation(delta_time);
     processKeyboard();
     glutPostRedisplay();
 }

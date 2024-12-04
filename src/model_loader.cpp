@@ -12,7 +12,7 @@
  *
  * All model files are expected to be located under this base directory
  */
-const std::string PREFIX_RELATIVE_PATH = "../assets/models/";
+const std::string PREFIX_RELATIVE_PATH = "../assets/models";
 
 /**
  * @brief Default constructor for ModelLoader
@@ -54,15 +54,25 @@ void ModelLoader::loadModel(const std::string& model_name) {
     meshes.clear();
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(PREFIX_RELATIVE_PATH + "/" + model_name + "/" + model_name + ".obj",
+    const aiScene* scene = importer.ReadFile(PREFIX_RELATIVE_PATH + "/" + model_name + "/" + model_name + ".fbx",
                                              aiProcess_Triangulate |
                                              aiProcess_FlipUVs |
-                                             aiProcess_GenNormals
+                                             aiProcess_GenNormals |
+                                             aiProcess_LimitBoneWeights |
+                                             aiProcess_PopulateArmatureData
     );
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
         return;
+    }
+
+    // Store global inverse transform
+    global_inverse_transform = aiMatrix4x4ToGlmMat4(scene->mRootNode->mTransformation.Inverse());
+
+    // Load animations if present
+    if (scene->HasAnimations()) {
+        loadAnimations(scene);
     }
 
     // Process the root node recursively
@@ -192,6 +202,31 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, const std::str
 
     // Unbind VAO
     glBindVertexArray(0);
+
+    // Process bone weights
+    for (unsigned int boneIndex = 0; boneIndex < mesh->mNumBones; boneIndex++) {
+        aiBone* bone = mesh->mBones[boneIndex];
+        std::string boneName(bone->mName.data);
+
+        // Add bone to mapping if not exists
+        if (newMesh.bone_mapping.find(boneName) == newMesh.bone_mapping.end()) {
+            Bone newBone;
+            newBone.name = boneName;
+            newBone.offset_matrix = aiMatrix4x4ToGlmMat4(bone->mOffsetMatrix);
+            newMesh.bones.push_back(newBone);
+            newMesh.bone_mapping[boneName] = newMesh.bones.size() - 1;
+        }
+
+        // Process bone weights
+        for (unsigned int weightIndex = 0; weightIndex < bone->mNumWeights; weightIndex++) {
+            unsigned int vertexId = bone->mWeights[weightIndex].mVertexId;
+            float weight = bone->mWeights[weightIndex].mWeight;
+
+            // Store weight information
+            unsigned int boneMapIndex = newMesh.bone_mapping[boneName];
+            newMesh.bones[boneMapIndex].weights.push_back({vertexId, weight});
+        }
+    }
 
     return newMesh;
 }
