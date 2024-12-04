@@ -36,7 +36,6 @@ bool keys[256] = {false};
 
 // Shader and model loader (global variables)
 GLuint shaderProgram;
-ModelLoader modelLoader;  // Model loader for the main model
 glm::mat4 projection, view;
 
 std::vector<glm::mat4> treeTransformations; // Store tree transformations
@@ -140,7 +139,6 @@ void renderForest() {
 void setupOpenGL() {
     glEnable(GL_DEPTH_TEST); // Enable depth test for 3D rendering
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
-    modelLoader.loadModel("monster"); // Load the main model
     generateForest(TREE_COUNT); // Generate trees
 }
 
