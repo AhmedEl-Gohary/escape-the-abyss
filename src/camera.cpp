@@ -104,3 +104,7 @@ float Camera::getCameraSpeed() {
 void Camera::setCameraPos(glm::vec3 cameraPos) {
     this->cameraPos = cameraPos;
 }
+
+void Camera::setCameraHeight(float height) {
+    this->CAMERA_HEIGHT = height;
+}

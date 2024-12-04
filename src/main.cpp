@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "camera.h"
 #include "wood.h"
+#include "house.h"
 #include <vector>
 
 Camera camera;
@@ -75,7 +76,7 @@ void setupOpenGL() {
     glEnable(GL_DEPTH_TEST); // Enable depth test for 3D rendering
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
 
-    environment = new Wood(shaderProgram, projection);
+    environment = new House(shaderProgram, projection);
     environment->init();
 }
 
