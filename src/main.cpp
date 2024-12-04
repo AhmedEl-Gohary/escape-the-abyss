@@ -5,28 +5,19 @@
 #include <sstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include "model_loader.h"
 #include "camera.h"
+#include "wood.h"
 #include <vector>
-#include <cstdlib>
-#include <ctime>
-
-const float WOODS_SIZE = 100.0f;  // Size of the woods area
-const int TREE_COUNT = 30;        // Number of trees to generate
-const float TREE_RADIUS = 1.0f;    // Collision radius for trees
 
 Camera camera;
+Environment *environment;
 
 // Keyboard state tracking
 bool keys[256] = {false};
 
 // Shader and model loader (global variables)
 GLuint shaderProgram;
-glm::mat4 projection, view;
-
-std::vector<glm::mat4> treeTransformations; // Store tree transformations
-ModelLoader treeModel;  // Model loader for tree models
+glm::mat4 projection;
 
 // Load shader from file
 GLuint loadShader(const char* shaderPath, GLenum shaderType) {
@@ -79,54 +70,13 @@ GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
     return curShaderProgram;
 }
 
-// Generate a forest of trees with random positions
-void generateForest(int treeCount) {
-    treeModel.loadModel("tree");
-    srand(static_cast<unsigned int>(time(nullptr))); // Seed for randomness
-
-    std::vector<glm::vec3> treePositions; // Store positions of trees
-    float minDistance = TREE_RADIUS * 15.0f; // Increase this value for more spacing
-
-    while (treePositions.size() < treeCount) {
-        glm::mat4 treeTransform = glm::mat4(1.0f);
-        float x = static_cast<float>(rand()) / (float) RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
-        float z = static_cast<float>(rand()) / (float) RAND_MAX * WOODS_SIZE - (WOODS_SIZE / 2);
-        glm::vec3 newTreePos = glm::vec3(x, 0, z);
-
-        // Check if the new position is too close to existing trees
-        bool tooClose = false;
-        for (const auto& pos : treePositions) {
-            if (glm::length(newTreePos - pos) < minDistance) {
-                tooClose = true;
-                break;
-            }
-        }
-
-        // If the position is not too close, add it
-        if (!tooClose) {
-            treeTransform = glm::translate(treeTransform, newTreePos);
-            treeTransform = glm::scale(treeTransform, glm::vec3(4, 4, 4));
-
-            treeTransformations.push_back(treeTransform);
-            treePositions.push_back(newTreePos); // Store the position
-        }
-    }
-}
-
-// Render all trees in the forest
-void renderForest() {
-    for (const auto& transform : treeTransformations) {
-        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform));
-        treeModel.draw();
-    }
-}
-
 // Setup OpenGL context and load models
 void setupOpenGL() {
     glEnable(GL_DEPTH_TEST); // Enable depth test for 3D rendering
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
-    generateForest(TREE_COUNT); // Generate trees
+
+    environment = new Wood(shaderProgram, projection);
+    environment->init();
 }
 
 void reshape(int width, int height) {
@@ -137,58 +87,23 @@ void reshape(int width, int height) {
 }
 
 void keyboardDown(unsigned char key, int x, int y) {
-    keys[key] = true;
+    environment->keyboardDown(key, x, y);
 }
 
 void keyboardUp(unsigned char key, int x, int y) {
-    keys[key] = false;
-}
-
-bool checkCollision(const glm::vec3& cameraPosition, const glm::vec3& treePos) {
-    float distance = glm::length(cameraPosition - treePos);
-    return distance < abs(camera.getCameraHeight()) + TREE_RADIUS;
-}
-
-void processKeyboard() {
-    glm::vec3 newCameraPos = camera.getNewCameraPosition(keys);
-    if (keys[27]) exit(0);
-
-    bool collision = false;
-    for (const auto& transform : treeTransformations) {
-        glm::vec3 treePos = glm::vec3(transform[3]);
-        if (checkCollision(newCameraPos, treePos)) {
-            collision = true;
-            break;
-        }
-    }
-
-    if (!collision) camera.setCameraPos(newCameraPos);
+    environment->keyboardUp(key, x, y);
 }
 
 void mouseMotion(int x, int y) {
-    camera.adjustCameraCenter(x, y);
+    environment->mouseMotion(x, y);
 }
 
 void renderScene() {
-    processKeyboard();
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUseProgram(shaderProgram);
-
-    view = camera.applyView();
-
-    GLuint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-    GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
-
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-    renderForest();
-    glutSwapBuffers();
+    environment->renderScene();
 }
 
 void update(int value) {
-    glutPostRedisplay();
+    environment->updateScene();
     glutTimerFunc(16, update, 0);
 }
 
@@ -211,10 +126,10 @@ int main(int argc, char** argv) {
 
     glutDisplayFunc(renderScene);
     glutReshapeFunc(reshape);
-    update(1000);
     glutKeyboardFunc(keyboardDown);
     glutKeyboardUpFunc(keyboardUp);
     glutPassiveMotionFunc(mouseMotion);
+    update(1000);
 
     glutSetCursor(GLUT_CURSOR_NONE);
 
