@@ -12,22 +12,11 @@
 #include <cstdlib>
 #include <ctime>
 
-const int WIDTH = 2400, HEIGHT = 1800;
 const float WOODS_SIZE = 100.0f;  // Size of the woods area
 const int TREE_COUNT = 30;        // Number of trees to generate
 const float TREE_RADIUS = 1.0f;    // Collision radius for trees
 
-// Camera system variables
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 5.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
-
-// Mouse movement variables
-float yaw = -90.0f, pitch = 0.0f;
-float centerX = WIDTH / 2.0f;
-float centerY = HEIGHT / 2.0f;
-
-Camera camera (cameraPos, cameraFront, cameraUp, yaw, pitch, centerX, centerY);
+Camera camera;
 
 // Keyboard state tracking
 bool keys[256] = {false};
