@@ -29,6 +29,18 @@ glm::vec3 Camera::getNewCameraPosition(bool keys[256]) {
     return newCameraPos;
 }
 
+glm::mat4 Camera::applyView() {
+    glm::vec3 actualCameraPos = cameraPos;
+    if (currentCameraMode == THIRD_PERSON) {
+        // Calculate third-person camera position
+        glm::vec3 offset = -cameraFront * THIRD_PERSON_DISTANCE;
+        offset.y += 2.0f;  // Lift the camera up a bit
+        actualCameraPos = cameraPos + offset;
+    }
+
+    return glm::lookAt(actualCameraPos, cameraPos + cameraFront, cameraUp);
+}
+
 void Camera::adjustCameraCenter(int x, int y) {
     // Static variables to track mouse movement deltas
     static int lastX = 0;

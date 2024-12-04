@@ -186,9 +186,7 @@ void renderScene() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(shaderProgram);
 
-    view = glm::lookAt(camera.getCameraPos(),
-                       camera.getCameraCenter(),
-                       camera.getCameraUp());
+    view = camera.applyView();
 
     GLuint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
     GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
