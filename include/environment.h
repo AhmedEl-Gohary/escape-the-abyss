@@ -19,6 +19,7 @@ public:
     virtual void renderScene() = 0;
     virtual void updateScene() = 0;
 
+    virtual void onMouseClick(int button, int state, int x, int y) = 0;
     void keyboardDown(unsigned char key, int x, int y) { keys[key] = true; }
     void keyboardUp(unsigned char key, int x, int y) { keys[key] = false; }
     virtual void processKeyboard() = 0;

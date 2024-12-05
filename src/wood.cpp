@@ -7,12 +7,13 @@
 Monster::Monster(const glm::vec3& spawnPos)
         : position(spawnPos),
           speed(generateRandomSpeed()),
-          isAlive(true), isMoving(true) {}
+          isAlive(true),
+          isMoving(true) {}
 
 float Monster::generateRandomSpeed() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.05f, 0.1f);
+    std::uniform_real_distribution<> dis(0.1f, 0.15f);
     return dis(gen);
 }
 
@@ -95,7 +96,202 @@ bool Monster::checkCollisionWithPlayer(const glm::vec3& playerPosition, float co
 
 Wood::Wood(GLuint shaderProgram, glm::mat4 &projection)
         : Environment(shaderProgram, projection),
-          lastMonsterSpawnTime(std::chrono::steady_clock::now()) {}
+          equippedSword(nullptr),
+          equippedTorch(nullptr),
+          isNearCollectible(false),
+          isShowingPickupPrompt(false),
+          isSwordSwinging(false),
+          swordSwingProgress(0.0f),
+          swordSwingAngle(0.0f) {}
+
+
+void Wood::generateCollectibles(int collectibleCount) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> disX(-WOODS_SIZE/2, WOODS_SIZE/2);
+    std::uniform_real_distribution<> disZ(-WOODS_SIZE/2, WOODS_SIZE/2);
+
+    swordModel.loadModel("sword");
+    torchModel.loadModel("torch");
+
+    for (int i = 0; i < collectibleCount; ++i) {
+        glm::vec3 collectiblePos;
+        Collectible::Type type = (i == 0) ? Collectible::SWORD : Collectible::TORCH;
+        bool validPosition;
+
+        do {
+            validPosition = true;
+            collectiblePos = glm::vec3(disX(gen), -3, disZ(gen));
+
+            for (const auto& treeTransform : treeTransformations) {
+                glm::vec3 treePos = glm::vec3(treeTransform[3]);
+                if (glm::length(collectiblePos - treePos) < TREE_RADIUS * 10) {
+                    validPosition = false;
+                    break;
+                }
+            }
+        } while (!validPosition);
+
+        collectibles.emplace_back(collectiblePos, type);
+    }
+}
+
+void Wood::renderCollectibles() {
+    // Get the elapsed time in seconds
+    float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f; // Convert milliseconds to seconds
+
+    for (const auto& collectible : collectibles) {
+        if (!collectible.isVisible) continue;
+
+        glm::mat4 collectibleTransform = glm::mat4(1.0f);
+
+        // Apply translation to position the collectible
+        collectibleTransform = glm::translate(collectibleTransform, collectible.position);
+
+        // Apply periodic rotation around the Y-axis
+        float rotationAngle = glm::radians(currentTime * 50.0f); // 50 degrees per second
+        collectibleTransform = glm::rotate(collectibleTransform, rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        // Apply scaling
+        collectibleTransform = glm::scale(collectibleTransform, glm::vec3(1.0f, 1.0f, 1.0f));
+
+        // Set the transformation matrix in the shader
+        GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(collectibleTransform));
+
+        // Draw the appropriate model based on the collectible type
+        if (collectible.type == Collectible::SWORD) {
+            swordModel.draw();
+        } else {
+            torchModel.draw();
+        }
+    }
+}
+
+
+Collectible* Wood::checkCollectibleCollision(const glm::vec3& cameraPosition) {
+    for (auto& collectible : collectibles) {
+        if (!collectible.isVisible || collectible.isEquipped) continue;
+
+        float distance = glm::length(cameraPosition - collectible.position);
+        if (distance < COLLECTIBLE_PICKUP_RANGE) {
+            return &collectible;
+        }
+    }
+    return nullptr;
+}
+
+void Wood::processCollectiblePickup(Collectible* collectible) {
+    if (collectible->type == Collectible::SWORD) {
+        equippedSword = collectible;
+        collectible->isEquipped = true;
+        collectible->isVisible = false;
+    }
+    else if (collectible->type == Collectible::TORCH) {
+        equippedTorch = collectible;
+        collectible->isEquipped = true;
+        collectible->isVisible = false;
+        for (auto& monster : monsters) monster.speed -= TORCH_SPEED_REDUCTION;
+    }
+}
+
+void Wood::processSwordAttack() {
+    if (!isSwordSwinging && equippedSword) {
+        isSwordSwinging = true;
+        swordSwingProgress = 0.0f;
+
+        glm::vec3 playerPos = camera.getNewCameraPosition(keys);
+        glm::vec3 playerFront = camera.getFrontVector();
+
+        for (auto& monster : monsters) {
+            glm::vec3 monsterToPlayer = glm::normalize(monster.position - playerPos);
+            float angle = glm::degrees(std::acos(glm::dot(playerFront, monsterToPlayer)));
+
+            float distanceToMonster = glm::length(monster.position - playerPos);
+
+            if (distanceToMonster <= SWORD_ATTACK_RANGE && angle <= 45.0f) {
+                monster.isAlive = false;
+            }
+        }
+    }
+}
+
+void Wood::renderSwordSwing() {
+    if (!isSwordSwinging) return;
+
+    swordSwingProgress += 0.2f;
+    swordSwingAngle = std::sin(swordSwingProgress) * 45.0f;
+
+    if (swordSwingProgress >= M_PI) {
+        isSwordSwinging = false;
+        swordSwingProgress = 0.0f;
+        swordSwingAngle = 0.0f;
+    }
+}
+
+void Wood::renderEquippedCollectibles() {
+    // Early exit if neither collectible is equipped
+    if (!equippedSword && !equippedTorch) return;
+
+    // Get camera properties
+    glm::vec3 cameraPos = camera.getCameraPos();
+    glm::vec3 cameraFront = camera.getFrontVector();
+    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
+
+    // Set transformations for both collectibles
+    glm::mat4 swordTransform = glm::mat4(1.0f);
+    glm::mat4 torchTransform = glm::mat4(1.0f);
+
+    // Offsets for holding sword and torch
+    float swordOffsetX = 0.2f; // Right hand
+    float swordOffsetY = -0.2f; // Below the camera
+    float swordOffsetZ = 0.3f;  // Forward
+
+    float torchOffsetX = -0.2f; // Left hand
+    float torchOffsetY = -0.2f; // Below the camera
+    float torchOffsetZ = 0.3f;  // Forward
+
+    // Positioning the sword
+    if (equippedSword) {
+        swordTransform = glm::translate(swordTransform,
+                                        cameraPos + cameraFront * swordOffsetZ +
+                                        cameraUp * swordOffsetY +
+                                        cameraRight * swordOffsetX
+        );
+
+        // Rotation to face forward
+        swordTransform = glm::rotate(swordTransform, glm::radians(-90.0f), glm::vec3(0, 1, 0));
+
+        // Apply swing animation if swinging
+        if (isSwordSwinging) {
+            swordTransform = glm::rotate(swordTransform,
+                                         glm::radians(swordSwingAngle),
+                                         glm::vec3(1, 0, 0)
+            );
+        }
+
+        GLuint swordModelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(swordModelLoc, 1, GL_FALSE, glm::value_ptr(swordTransform));
+        swordModel.draw();
+    }
+
+    // Positioning the torch
+    if (equippedTorch) {
+        torchTransform = glm::translate(torchTransform,
+                                        cameraPos + cameraFront * torchOffsetZ +
+                                        cameraUp * torchOffsetY +
+                                        cameraRight * torchOffsetX
+        );
+
+        // Rotate torch to face forward
+        torchTransform = glm::rotate(torchTransform, glm::radians(90.0f), glm::vec3(0, 1, 0));
+
+        GLuint torchModelLoc = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(torchModelLoc, 1, GL_FALSE, glm::value_ptr(torchTransform));
+        torchModel.draw();
+    }
+}
 
 void Wood::generateForest(int treeCount) {
     treeModel.loadModel("tree");
@@ -206,6 +402,7 @@ void Wood::renderMonsters() {
     glm::vec3 playerPosition = camera.getNewCameraPosition(keys);
 
     for (const auto& monster : monsters) {
+        if (!monster.isAlive) continue;
         glm::mat4 monsterTransform = glm::mat4(1.0f);
         glm::vec3 monsterPos = monster.position;
         monsterTransform = glm::translate(monsterTransform, monsterPos);
@@ -228,25 +425,36 @@ void Wood::renderMonsters() {
     }
 }
 
+
 void Wood::init() {
     generateForest(TREE_COUNT);
     generateMonsters(MONSTER_COUNT);
+    generateCollectibles(COLLECTIBLE_COUNT);
 }
 
 void Wood::updateScene() {
     glm::vec3 playerPosition = camera.getNewCameraPosition(keys);
 
+    // Check for nearby collectibles
+    Collectible* nearbyCollectible = checkCollectibleCollision(playerPosition);
+    isNearCollectible = (nearbyCollectible != nullptr);
+    isShowingPickupPrompt = isNearCollectible;
+
+    // Render sword swing
+    if (isSwordSwinging) {
+        renderSwordSwing();
+    }
+
+    // Monster update logic
     for (Monster& monster : monsters) {
-        // Check if monster is very close to trigger attack mode
+        if (!monster.isAlive) continue;
+
         float distanceToPlayer = glm::length(monster.position - playerPosition);
 
         if (distanceToPlayer < MONSTER_ATTACK_RANGE) {
-            // Stop monster movement
             monster.isMoving = false;
-
             processMonsterAttack();
         } else {
-            // Resume normal movement
             monster.isMoving = true;
             monster.update(playerPosition, monsters);
         }
@@ -254,7 +462,6 @@ void Wood::updateScene() {
 
     // Check game over condition
     if (playerLives <= 0) {
-        // Implement game over logic
         exit(0); // Or show game over screen
     }
 
@@ -286,8 +493,15 @@ void Wood::renderScene() {
     // Render scene elements
     renderForest();
     renderMonsters();
+    renderCollectibles();
     renderGrass();
     renderSky();
+
+    renderEquippedCollectibles();
+
+    if (isShowingPickupPrompt) {
+        renderPickupPrompt("Press E to pickup");
+    }
 
     if (isBeingAttacked) {
         renderAttackOverlay();
@@ -295,9 +509,11 @@ void Wood::renderScene() {
     }
 
     renderHearts();
+    if (equippedSword) renderCrosshair();
 
     glutSwapBuffers();
 }
+
 bool Wood::checkCollision(const glm::vec3 &cameraPosition, const glm::vec3 &treePos) {
     float distance = glm::length(cameraPosition - treePos);
     return distance < abs(camera.getCameraHeight()) + TREE_RADIUS;
@@ -306,6 +522,13 @@ bool Wood::checkCollision(const glm::vec3 &cameraPosition, const glm::vec3 &tree
 void Wood::processKeyboard() {
     glm::vec3 newCameraPos = camera.getNewCameraPosition(keys);
     if (keys[27]) exit(0);
+
+    if (isNearCollectible && keys['e']) {
+        Collectible* nearbyCollectible = checkCollectibleCollision(camera.getNewCameraPosition(keys));
+        if (nearbyCollectible) {
+            processCollectiblePickup(nearbyCollectible);
+        }
+    }
 
     if (newCameraPos.x < FOREST_MIN_X) newCameraPos.x = FOREST_MIN_X;
     if (newCameraPos.x > FOREST_MAX_X) newCameraPos.x = FOREST_MAX_X;
@@ -451,4 +674,111 @@ void Wood::renderAttackOverlay() {
     glPopMatrix();
 
     glUseProgram(shaderProgram);
+}
+
+void Wood::renderPickupPrompt(const std::string& text) {
+    // Store current matrix states
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set up orthographic projection
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    glOrtho(0, width, 0, height, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable current shader
+    glUseProgram(0);
+
+    // Set rendering color with transparency
+    glColor4f(1.0f, 1.0f, 1.0f, 0.8f);
+
+    // Enable blending for semi-transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Calculate text width using stroke font
+    float totalWidth = 0;
+    for (char c : text) totalWidth += glutStrokeWidth(GLUT_STROKE_ROMAN, c);
+
+    // Position text at bottom center
+    float scaleFactor = 1.2f;  // Adjust for desired size
+    float xPos = (width - totalWidth * scaleFactor) / 2.0f;
+    float yPos = height * 0.15f;
+
+    // Translate and scale
+    glPushMatrix();
+    glTranslatef(xPos, yPos, 0);
+    glScalef(scaleFactor, scaleFactor, scaleFactor);
+
+    for (char c : text) {
+        glLineWidth(13.0f);
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+        glLineWidth(1.0f);
+    }
+
+    glPopMatrix();
+
+    glDisable(GL_BLEND);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glUseProgram(shaderProgram);
+}
+
+void Wood::renderCrosshair() {
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, 1, 0, 1, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glUseProgram(0);
+    glDisable(GL_DEPTH_TEST);
+
+    // Set crosshair color (white)
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+    // Draw crosshair lines
+    float centerX = 0.5f;
+    float centerY = 0.5f;
+    float length = 0.02f;  // Length of crosshair lines
+
+    // Horizontal line
+    glBegin(GL_LINES);
+    glVertex2f(centerX - length, centerY);
+    glVertex2f(centerX + length, centerY);
+    glEnd();
+
+    // Vertical line
+    glBegin(GL_LINES);
+    glVertex2f(centerX, centerY - length);
+    glVertex2f(centerX, centerY + length);
+    glEnd();
+
+    glEnable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glUseProgram(shaderProgram);
+}
+
+void Wood::onMouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && equippedSword) {
+        processSwordAttack();
+    }
 }
