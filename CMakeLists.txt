@@ -13,6 +13,7 @@ file(GLOB SRC_FILES src/*.cpp)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(SFML 2.5 REQUIRED COMPONENTS audio system)
 
 # For Assimp, manually specify include and library paths if CMake can't find it
 find_path(ASSIMP_INCLUDE_DIR assimp/Importer.hpp PATHS /usr/include /usr/local/include)
@@ -35,3 +36,5 @@ target_link_libraries(${PROJECT_NAME}
         GLEW::GLEW
         ${ASSIMP_LIBRARY}
 )
+
+target_link_libraries(${PROJECT_NAME} sfml-audio sfml-system)

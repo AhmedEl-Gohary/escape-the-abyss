@@ -63,4 +63,5 @@ To run **Escape the Abyss**, you'll need the following libraries. You can instal
 ```bash
 sudo apt update
 sudo apt install build-essential cmake freeglut3-dev libglew-dev libglm-dev libassimp-dev
-sudo apt-get install libjpeg-dev libpng-dev libtiff-dev
+sudo apt-get install libjpeg-dev libpng-dev libtiff-dev libsfml-dev
+

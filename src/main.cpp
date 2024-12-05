@@ -1,13 +1,17 @@
+// GL liberaries
 #include <GL/glew.h>
 #include <GL/glut.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+// global liberaries
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <vector>
+// header files
 #include "camera.h"
 #include "wood.h"
-#include <vector>
+#include "sound.h"
 
 Camera camera;
 Environment *environment;
