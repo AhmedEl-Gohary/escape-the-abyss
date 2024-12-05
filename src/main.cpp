@@ -12,14 +12,11 @@
 Camera camera;
 Environment *environment;
 
-// Keyboard state tracking
 bool keys[256] = {false};
 
-// Shader and model loader (global variables)
 GLuint shaderProgram;
 glm::mat4 projection;
 
-// Load shader from file
 GLuint loadShader(const char* shaderPath, GLenum shaderType) {
     std::ifstream shaderFile(shaderPath);
     if (!shaderFile.is_open()) {
@@ -46,7 +43,6 @@ GLuint loadShader(const char* shaderPath, GLenum shaderType) {
     return shader;
 }
 
-// Create a shader program from vertex and fragment shaders
 GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
     GLuint vertexShader = loadShader(vertexPath, GL_VERTEX_SHADER);
     GLuint fragmentShader = loadShader(fragmentPath, GL_FRAGMENT_SHADER);
@@ -70,9 +66,9 @@ GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
     return curShaderProgram;
 }
 
-// Setup OpenGL context and load models
+
 void setupOpenGL() {
-    glEnable(GL_DEPTH_TEST); // Enable depth test for 3D rendering
+    glEnable(GL_DEPTH_TEST);
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
 
     environment = new Wood(shaderProgram, projection);

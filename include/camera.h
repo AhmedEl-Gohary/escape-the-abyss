@@ -27,7 +27,7 @@ private:
     glm::vec3 cameraPos{}, cameraFront{}, cameraUp{};
     CameraMode currentCameraMode = FIRST_PERSON;
     float yaw, pitch, centerX, centerY;
-    const float CAMERA_SPEED = 0.5f, CAMERA_HEIGHT = -1.5f, THIRD_PERSON_DISTANCE = 5.0f;
+    const float CAMERA_SPEED = 0.2f, CAMERA_HEIGHT = -2.f, THIRD_PERSON_DISTANCE = 5.0f;
 
 public:
     Camera() {
@@ -48,6 +48,7 @@ public:
     glm::vec3 getCameraPos();
     glm::vec3 getCameraCenter();
     glm::vec3 getCameraUp();
+    glm::vec3 getFrontVector();
     float getCameraHeight();
     float getCameraSpeed();
 

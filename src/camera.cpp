@@ -5,7 +5,6 @@ glm::vec3 Camera::getNewCameraPosition(bool keys[256]) {
     glm::vec3 movementDirection = cameraFront;
 
     if (currentCameraMode == THIRD_PERSON) {
-        // Remove vertical component to keep movement on horizontal plane
         movementDirection.y = 0;
         movementDirection = glm::normalize(movementDirection);
     }
@@ -79,6 +78,14 @@ void Camera::adjustCameraCenter(int x, int y) {
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+}
+
+glm::vec3 Camera::getFrontVector() {
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    return glm::normalize(front);
 }
 
 glm::vec3 Camera::getCameraPos() {

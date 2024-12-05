@@ -54,7 +54,7 @@ void ModelLoader::loadModel(const std::string& model_name) {
     meshes.clear();
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(PREFIX_RELATIVE_PATH + "/" + model_name + "/" + model_name + ".obj",
+    const aiScene* scene = importer.ReadFile(PREFIX_RELATIVE_PATH + model_name + "/" + model_name + ".obj",
                                              aiProcess_Triangulate |
                                              aiProcess_FlipUVs |
                                              aiProcess_GenNormals
@@ -210,7 +210,7 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene, const std::str
 GLuint ModelLoader::loadTexture(aiMaterial* material, aiTextureType type, const std::string& model_name) {
     aiString texturePath;
     if (material->GetTexture(type, 0, &texturePath) == AI_SUCCESS) {
-        std::string path = PREFIX_RELATIVE_PATH + "/" + model_name + "/" + texturePath.C_Str();
+        std::string path = PREFIX_RELATIVE_PATH + model_name + "/" + texturePath.C_Str();
         return loadTextureFromFile(path);
     }
     return 0;
