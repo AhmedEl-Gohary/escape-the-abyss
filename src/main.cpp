@@ -98,6 +98,10 @@ void renderScene() {
     environment->renderScene();
 }
 
+void onMouseClick(int button, int state, int x, int y) {
+    environment->onMouseClick(button, state, x, y);
+}
+
 void update(int value) {
     environment->updateScene();
     glutTimerFunc(16, update, 0);
@@ -125,6 +129,7 @@ int main(int argc, char** argv) {
     glutKeyboardFunc(keyboardDown);
     glutKeyboardUpFunc(keyboardUp);
     glutPassiveMotionFunc(mouseMotion);
+    glutMouseFunc(onMouseClick);
     update(1000);
 
     glutSetCursor(GLUT_CURSOR_NONE);
