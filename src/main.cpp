@@ -76,7 +76,7 @@ void setupOpenGL() {
     glEnable(GL_DEPTH_TEST);
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
 
-    environment = new House(shaderProgram, projection);
+    environment = new Wood(shaderProgram, projection);
     environment->init();
 }
 

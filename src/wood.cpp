@@ -102,7 +102,8 @@ Wood::Wood(GLuint shaderProgram, glm::mat4 &projection)
           isShowingPickupPrompt(false),
           isSwordSwinging(false),
           swordSwingProgress(0.0f),
-          swordSwingAngle(0.0f) {}
+          swordSwingAngle(0.0f) {playerModel.loadModel("player");}
+
 
 
 void Wood::generateCollectibles(int collectibleCount) {
@@ -216,6 +217,28 @@ void Wood::processSwordAttack() {
     }
 }
 
+void Wood::renderPlayer() {
+    glm::mat4 model = glm::mat4(1.0f);
+
+    // Position the player model at the camera's position
+    model = glm::translate(model, playerPosition);
+
+    // Rotate the player model to match camera direction
+    glm::vec3 cameraFront = camera.getFrontVector();
+    float angle = atan2(cameraFront.x, cameraFront.z) + glm::radians(90.0f);
+    model = glm::rotate(model, angle + 0.7f * sinf(playerRotation / 4.0f) , glm::vec3(0, 1, 0));
+
+    // Adjust scale if needed
+//    model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+
+    // Set model matrix uniform in shader
+    GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Render the player model
+    playerModel.draw();
+}
+
 void Wood::renderSwordSwing() {
     if (!isSwordSwinging) return;
 
@@ -242,6 +265,8 @@ void Wood::renderEquippedCollectibles() {
     // Set transformations for both collectibles
     glm::mat4 swordTransform = glm::mat4(1.0f);
     glm::mat4 torchTransform = glm::mat4(1.0f);
+
+    float angle = atan2(cameraFront.x, cameraFront.z);
 
     // Offsets for holding sword and torch
     float swordOffsetX = 0.2f; // Right hand
@@ -399,8 +424,6 @@ void Wood::renderForest() {
 }
 
 void Wood::renderMonsters() {
-    glm::vec3 playerPosition = camera.getNewCameraPosition(keys);
-
     for (const auto& monster : monsters) {
         if (!monster.isAlive) continue;
         glm::mat4 monsterTransform = glm::mat4(1.0f);
@@ -433,8 +456,7 @@ void Wood::init() {
 }
 
 void Wood::updateScene() {
-    glm::vec3 playerPosition = camera.getNewCameraPosition(keys);
-
+    playerPosition = camera.getNewCameraPosition(keys);
     // Check for nearby collectibles
     Collectible* nearbyCollectible = checkCollectibleCollision(playerPosition);
     isNearCollectible = (nearbyCollectible != nullptr);
@@ -459,6 +481,16 @@ void Wood::updateScene() {
             monster.update(playerPosition, monsters);
         }
     }
+
+    playerY += speed;
+    speed -= gravity;
+    if (playerY < -3.5){
+        playerY = -3.5;
+        speed = 0;
+        isJumping = false;
+    }
+    playerPosition.y = playerY;
+    camera.updateY(playerY + 3.5);
 
     // Check game over condition
     if (playerLives <= 0) {
@@ -491,6 +523,7 @@ void Wood::renderScene() {
     glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
 
     // Render scene elements
+    renderPlayer();
     renderForest();
     renderMonsters();
     renderCollectibles();
@@ -528,6 +561,18 @@ void Wood::processKeyboard() {
         if (nearbyCollectible) {
             processCollectiblePickup(nearbyCollectible);
         }
+    }
+
+    if (keys['a'] || keys['w'] || keys['s'] || keys['d']){
+        playerRotation += 1;
+    }else{
+        playerRotation = 0;
+    }
+
+    if (keys[' ']){
+        if(!isJumping) speed = 1;
+        isJumping = true;
+        keys[' '] = false;
     }
 
     if (newCameraPos.x < FOREST_MIN_X) newCameraPos.x = FOREST_MIN_X;

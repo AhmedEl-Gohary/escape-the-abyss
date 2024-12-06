@@ -39,7 +39,11 @@ public:
 
 class Wood : public Environment {
 private:
-    ModelLoader treeModel, monsterModel,
+    glm::vec3 playerPosition;
+    float playerRotation = 0;
+    bool isJumping = false;
+    float speed = 0, gravity = 0.16, playerY = -3.5;
+    ModelLoader treeModel, monsterModel, playerModel,
             swordModel, torchModel, grassModel, skyModel;
 
     glm::mat4 skyTransformation;
@@ -61,6 +65,8 @@ private:
     void generateForest(int treeCount);
     void generateMonsters(int monsterCount);
     void generateCollectibles(int collectibleCount);
+
+    void renderPlayer();
     void renderMonsters();
     void renderCollectibles();
     void renderGrass();
