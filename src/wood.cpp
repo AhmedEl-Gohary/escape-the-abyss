@@ -517,6 +517,20 @@ void Wood::renderScene() {
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
+    // moon
+    glUniform1f(glGetUniformLocation(shaderProgram, "isMoonOn"), true);
+    glUniform3fv(glGetUniformLocation(shaderProgram, "moonColor"), 1,
+                 glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
+    glUniform3fv(glGetUniformLocation(shaderProgram, "moonPos"), 1,
+                 glm::value_ptr(glm::vec3(50.0f, 50.0f, 50.0f)));
+    glUniform1f(glGetUniformLocation(shaderProgram, "moonIntensity"), 30.0f);
+    // lightbulb
+    glUniform1f(glGetUniformLocation(shaderProgram, "isLightBulbOn"), false);
+
+    // flashlight
+    glUniform1f(glGetUniformLocation(shaderProgram, "isFlashlightOn"), false);
+
+
     // Get and set the camera position
     glm::vec3 cameraPos = camera.getCameraPos(); // Use getCameraPos() instead of getNewCameraPosition
     GLuint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
