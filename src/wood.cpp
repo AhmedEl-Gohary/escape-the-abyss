@@ -387,6 +387,10 @@ void Wood::generateMonsters(int monsterCount) {
     }
 }
 
+void Wood::generatePlayer() {
+    playerModel.loadModel("spider_man");
+}
+
 void Wood::renderForest() {
     for (const auto& transform : treeTransformations) {
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -396,6 +400,30 @@ void Wood::renderForest() {
                            glm::value_ptr(transform));
         treeModel.draw();
     }
+}
+
+void Wood::renderPlayerModel() {
+    glm::mat4 model = glm::mat4(1.0f);
+
+    // Position the player model at the camera's position
+    glm::vec3 cameraPos = camera.getCameraPos();
+    cameraPos.y = -3.7;
+    model = glm::translate(model, cameraPos);
+
+    // Rotate the player model to match camera direction
+    glm::vec3 cameraFront = camera.getFrontVector();
+    float angle = atan2(cameraFront.x, cameraFront.z);
+    model = glm::rotate(model, angle + (float) M_PI / 2, glm::vec3(0, 1, 0));
+
+    // Adjust scale if needed
+    model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+
+    // Set model matrix uniform in shader
+    GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Render the player model
+    playerModel.draw();
 }
 
 void Wood::renderMonsters() {
@@ -428,8 +456,9 @@ void Wood::renderMonsters() {
 
 void Wood::init() {
     generateForest(TREE_COUNT);
-//    generateMonsters(MONSTER_COUNT);
+    generateMonsters(MONSTER_COUNT);
     generateCollectibles(COLLECTIBLE_COUNT);
+    generatePlayer();
 }
 
 void Wood::updateScene() {
@@ -492,6 +521,7 @@ void Wood::renderScene() {
 
     // Render scene elements
     renderForest();
+    renderPlayerModel();
     renderMonsters();
     renderCollectibles();
     renderGrass();

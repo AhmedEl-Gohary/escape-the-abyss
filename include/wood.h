@@ -39,7 +39,7 @@ public:
 
 class Wood : public Environment {
 private:
-    ModelLoader treeModel, monsterModel,
+    ModelLoader treeModel, monsterModel, playerModel,
             swordModel, torchModel, grassModel, skyModel;
 
     glm::mat4 skyTransformation;
@@ -60,7 +60,9 @@ private:
     // Spawn and management methods
     void generateForest(int treeCount);
     void generateMonsters(int monsterCount);
+    void generatePlayer();
     void generateCollectibles(int collectibleCount);
+    void renderPlayerModel();
     void renderMonsters();
     void renderCollectibles();
     void renderGrass();
