@@ -74,6 +74,7 @@ private:
     void renderEquippedFlashlight();
     void renderPlayer();
     void renderPickupPrompt(const std::string& text);
+    void renderScore();
 
     // Collision and interaction methods
     bool checkDoorCollision(const glm::vec3& playerPosition, float playerRadius);

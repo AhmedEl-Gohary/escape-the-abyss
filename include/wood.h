@@ -78,6 +78,7 @@ private:
     void renderSwordSwing();
     void renderEquippedCollectibles();
     void renderPickupPrompt(const std::string& text);
+    void renderScore();
 
     // Collision and interaction methods
     bool checkCollision(const glm::vec3& cameraPosition, const glm::vec3& treePos);

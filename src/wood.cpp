@@ -543,6 +543,7 @@ void Wood::renderScene() {
     renderCollectibles();
     renderGrass();
     renderSky();
+    renderScore();
 
     renderEquippedCollectibles();
 
@@ -734,6 +735,67 @@ void Wood::renderAttackOverlay() {
 
     glUseProgram(shaderProgram);
 }
+
+void Wood::renderScore() {
+    // Store current matrix states
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set up orthographic projection
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    glOrtho(0, width, 0, height, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable current shader
+    glUseProgram(0);
+
+    // Set rendering color with transparency
+    glColor4f(1.0f, 1.0f, 1.0f, 0.8f);
+
+    // Enable blending for semi-transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Calculate text width using stroke font
+    float totalWidth = 0;
+    int elapsedTime = glutGet(GLUT_ELAPSED_TIME) / 1000; // Convert ms to seconds
+    std::string text = "Time: " + std::to_string(elapsedTime);
+    for (char c : text) totalWidth += glutStrokeWidth(GLUT_STROKE_ROMAN, c);
+
+    // Position text at bottom center
+    float scaleFactor = 0.4f;  // Adjust for desired size
+    float xPos = (width - totalWidth * scaleFactor) / 2.0f;
+    float yPos = height * 0.85f;
+
+    // Translate and scale
+    glPushMatrix();
+    glTranslatef(xPos, yPos, 0);
+    glScalef(scaleFactor, scaleFactor, scaleFactor);
+    for (char c : text) {
+        glLineWidth(2.0f);
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+        glLineWidth(1.0f);
+    }
+
+    glPopMatrix();
+
+    glDisable(GL_BLEND);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glUseProgram(shaderProgram);
+}
+
+
 
 void Wood::renderPickupPrompt(const std::string& text) {
     // Store current matrix states
