@@ -8,7 +8,6 @@
 #include "environment.h"
 #include "model_loader.h"
 
-
 class Collectible {
 public:
     enum Type {
@@ -82,6 +81,7 @@ private:
     void renderSwordSwing();
     void renderEquippedCollectibles();
     void renderPickupPrompt(const std::string& text);
+    void renderScore();
     void loadSounds();
 
     // Collision and interaction methods

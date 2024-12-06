@@ -77,6 +77,7 @@ private:
     void renderEquippedFlashlight();
     void renderPlayer();
     void renderPickupPrompt(const std::string& text);
+    void renderScore();
     void loadSounds();
 
     // Collision and interaction methods
