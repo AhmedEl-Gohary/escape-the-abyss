@@ -211,7 +211,7 @@ void Wood::processSwordAttack() {
             float distanceToMonster = glm::length(monster.position - playerPos);
 
             if (distanceToMonster <= SWORD_ATTACK_RANGE && angle <= 45.0f) {
-                playSound(zombie);
+                playSound(zombie, 20, false);
                 monster.isAlive = false;
             }
         }
@@ -496,7 +496,21 @@ void Wood::updateScene() {
 
     // Check game over condition
     if (playerLives <= 0) {
-        exit(0); // Or show game over screen
+        isRunning = false;
+        isLoosing = true;
+        return;
+    }
+
+    bool oneMonsterAlive = false;
+    for (auto monster: monsters){
+        oneMonsterAlive |= monster.isAlive;
+    }
+
+    if (!oneMonsterAlive){
+        isRunning = false;
+        isWinning = true;
+        score = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        return;
     }
 
     processKeyboard();
