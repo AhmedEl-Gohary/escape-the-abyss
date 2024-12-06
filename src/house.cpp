@@ -24,18 +24,32 @@ void House::generateWalls() {
     wallModel.loadModel("wall");
 
     // wall 1
-    glm::vec3 lower1 (MIN_X, -5.0f, MIN_Z - 0.02f);
-    glm::vec3 upper1 (MAX_X, 5.0f, MIN_Z + 0.02f);
+    glm::vec3 lower1 (MIN_X - WALL_DEPTH, -5.0f, MIN_Z - WALL_DEPTH);
+    glm::vec3 upper1 (MAX_X + WALL_DEPTH, 5.0f, MIN_Z + WALL_DEPTH);
 
     Wall wall1 (lower1, upper1);
     walls.push_back(wall1);
 
     // wall 2
-    glm::vec3 lower2 (MIN_X, -5.0f, MAX_Z - 0.02f);
-    glm::vec3 upper2 (MAX_X, 5.0f, MAX_Z + 0.02f);
+    glm::vec3 lower2 (MIN_X - WALL_DEPTH, -5.0f, MAX_Z - WALL_DEPTH);
+    glm::vec3 upper2 (MAX_X + WALL_DEPTH, 5.0f, MAX_Z + WALL_DEPTH);
 
     Wall wall2 (lower2, upper2);
     walls.push_back(wall2);
+
+    // wall 3
+    glm::vec3 lower3 (MIN_X - WALL_DEPTH, -5.0f, MIN_Z - WALL_DEPTH);
+    glm::vec3 upper3 (MIN_X + WALL_DEPTH, 5.0f, MAX_Z + WALL_DEPTH);
+
+    Wall wall3 (lower3, upper3);
+    walls.push_back(wall3);
+
+    // wall 4
+    glm::vec3 lower4 (MAX_X - WALL_DEPTH, -5.0f, MIN_Z - WALL_DEPTH);
+    glm::vec3 upper4 (MAX_X + WALL_DEPTH, 5.0f, MAX_Z + WALL_DEPTH);
+
+    Wall wall4 (lower4, upper4);
+    walls.push_back(wall4);
 }
 
 void House::renderFloor() {
@@ -46,7 +60,7 @@ void House::renderFloor() {
     }
 }
 
-void House::renderWall(Wall& wall) {
+void House::renderWall(const Wall& wall) {
     glm::mat4 wallTransform(1.0f); // Initialize to identity matrix
 
     // Compute the wall's dimensions
@@ -57,9 +71,20 @@ void House::renderWall(Wall& wall) {
     // Compute the wall's center position
     glm::vec3 wallCenter = (wall.lowerPoint + wall.upperPoint) * 0.5f;
 
+    // Determine the orientation of the wall (horizontal or vertical)
+    bool isHorizontal = width > depth; // If width > depth, wall is horizontal along the X-axis
+
     // Set up the transformations
     wallTransform = glm::translate(wallTransform, wallCenter); // Translate to center position
-    wallTransform = glm::scale(wallTransform, glm::vec3(width, height, depth)); // Scale to dimensions
+
+    // Apply rotation if the wall is vertical (aligned along the Z-axis)
+    if (!isHorizontal) {
+        wallTransform = glm::rotate(wallTransform, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        std::swap(width, depth); // Swap width and depth for scaling
+    }
+
+    // Scale the wall to its dimensions
+    wallTransform = glm::scale(wallTransform, glm::vec3(width, height, depth));
 
     // Pass the transformation to the shader
     GLuint wallModelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -68,6 +93,7 @@ void House::renderWall(Wall& wall) {
     // Render the wall model
     wallModel.draw();
 }
+
 
 void House::renderWalls() {
     for (auto wall : walls) {
@@ -124,7 +150,13 @@ void House::updateScene() {
 void House::processKeyboard() {
     glm::vec3 newCameraPos = camera.getNewCameraPosition(keys);
     if (keys[27]) exit(0);
-    camera.setCameraPos(newCameraPos);
+    bool collidesWithWall = false;
+    for (auto wall : walls){
+        collidesWithWall |= wall.checkCollision(newCameraPos, COLLISION_RADIUS);
+    }
+    if (!collidesWithWall) {
+        camera.setCameraPos(newCameraPos);
+    }
 }
 
 void House::onMouseClick(int button, int state, int x, int y) {
