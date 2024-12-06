@@ -11,8 +11,11 @@ protected:
     bool keys[256] = {false};
 public:
     bool isRunning{true};
+    bool isWinning{false};
+    bool isLoosing{false};
     GLuint shaderProgram;
     glm::mat4 &projection;
+    float score;
 
     virtual ~Environment() = default;
     Environment(GLuint shaderProgram, glm::mat4 &projection) : shaderProgram(shaderProgram), projection(projection) {}
