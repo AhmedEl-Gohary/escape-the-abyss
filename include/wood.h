@@ -53,6 +53,9 @@ private:
     std::vector<Monster> monsters;
     std::vector<Collectible> collectibles;
 
+    sf::SoundBuffer hitBuffer, zombieBuffer, walkingBuffer;
+    sf::Sound hit, zombie, walking;
+
     Collectible* equippedSword;
     Collectible* equippedTorch;
     bool isNearCollectible;
@@ -79,6 +82,7 @@ private:
     void renderEquippedCollectibles();
     void renderPickupPrompt(const std::string& text);
     void renderScore();
+    void loadSounds();
 
     // Collision and interaction methods
     bool checkCollision(const glm::vec3& cameraPosition, const glm::vec3& treePos);
@@ -116,6 +120,7 @@ public:
     void init() override;
     void renderScene() override;
     void updateScene() override;
+    void cleanUp() override;
     void processKeyboard() override;
     void onMouseClick(int button, int state, int x, int y) override;
 };

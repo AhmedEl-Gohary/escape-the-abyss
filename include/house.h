@@ -52,8 +52,11 @@ private:
     bool isKeyEquipped{};
     bool isFlashlightEquipped{};
     bool isFlashlightOn{};
-    bool isNearCollectible{};
     bool isShowingPickupPrompt{};
+
+    // sounds
+    sf::SoundBuffer backgroundBuffer, doorOpeningBuffer, walkingBuffer, collectBuffer, doorLockedBuffer;
+    sf::Sound background, doorOpening, walking, collect, doorLocked;
 
     Whiteboard whiteboard;
     void renderWhiteboard();
@@ -75,6 +78,7 @@ private:
     void renderPlayer();
     void renderPickupPrompt(const std::string& text);
     void renderScore();
+    void loadSounds();
 
     // Collision and interaction methods
     bool checkDoorCollision(const glm::vec3& playerPosition, float playerRadius);
@@ -86,31 +90,18 @@ public:
     // Constants
     static constexpr float WALL_DEPTH = 0.5f;
     static constexpr int COLLISION_RADIUS = 2.0f;
-    static constexpr float TREE_RADIUS = 1.0f;
-    static constexpr int MONSTER_COUNT = 4;
-    static constexpr int COLLECTIBLE_COUNT = 2;
-    static constexpr float MONSTER_RADIUS = 1.5f;
-    static constexpr float MONSTER_ATTACK_RANGE = 3.0f;
     static constexpr float COLLECTIBLE_PICKUP_RANGE = 2.0f;
-    static constexpr float SWORD_ATTACK_RANGE = 5.0f;
-    static constexpr float TORCH_SPEED_REDUCTION = 0.05f;
-
-    int playerLives = 3;
-
     static constexpr float MIN_X = -25.0f;
     static constexpr float MAX_X = 25.0f;
     static constexpr float MIN_Z = -25.0f;
     static constexpr float MAX_Z = 25.0f;
-
-    std::chrono::steady_clock::time_point lastAttackTime;
-    bool isBeingAttacked = false;
-    float attackPushbackDistance = 2.f;
 
     House(GLuint shaderProgram, glm::mat4 &projection);
 
     void init() override;
     void renderScene() override;
     void updateScene() override;
+    void cleanUp() override;
     void processKeyboard() override;
     void onMouseClick(int button, int state, int x, int y) override;
 };

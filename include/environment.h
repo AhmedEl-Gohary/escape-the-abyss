@@ -2,6 +2,7 @@
 #define ENVIRONMENT_H
 
 #include "camera.h"
+#include "sound.h"
 #include <GL/glut.h>
 
 class Environment {
@@ -18,6 +19,7 @@ public:
     virtual void init() = 0;
     virtual void renderScene() = 0;
     virtual void updateScene() = 0;
+    virtual void cleanUp() = 0;
 
     virtual void onMouseClick(int button, int state, int x, int y) = 0;
     void keyboardDown(unsigned char key, int x, int y) { keys[key] = true; }
