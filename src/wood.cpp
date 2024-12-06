@@ -428,7 +428,7 @@ void Wood::renderMonsters() {
 
 void Wood::init() {
     generateForest(TREE_COUNT);
-    generateMonsters(MONSTER_COUNT);
+//    generateMonsters(MONSTER_COUNT);
     generateCollectibles(COLLECTIBLE_COUNT);
 }
 

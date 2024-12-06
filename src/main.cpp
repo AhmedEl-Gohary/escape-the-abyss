@@ -95,7 +95,15 @@ void keyboardUp(unsigned char key, int x, int y) {
 }
 
 void mouseMotion(int x, int y) {
-    environment->mouseMotion(x, y);
+    static int lastX = WIDTH / 2;
+    static int lastY = HEIGHT / 2;
+
+    // Calculate deltas from the last position instead of the center
+    int deltaX = x - lastX;
+    int deltaY = lastY - y; // Reversed to match typical Y-axis movement
+
+    // Process deltas for camera movement with a smaller sensitivity
+    environment->mouseMotion(deltaX, deltaY);
 }
 
 void renderScene() {
@@ -109,6 +117,10 @@ void onMouseClick(int button, int state, int x, int y) {
 void update(int value) {
     environment->updateScene();
     glutTimerFunc(16, update, 0);
+}
+
+void regainFocus() {
+    glutWarpPointer(WIDTH / 2, HEIGHT / 2); // Re-center the pointer on focus regain
 }
 
 int main(int argc, char** argv) {
@@ -125,18 +137,25 @@ int main(int argc, char** argv) {
 
     setupOpenGL();
 
-    glutPassiveMotionFunc(mouseMotion);
-    glutWarpPointer(WIDTH / 2.0f, HEIGHT / 2.0f);
-
     glutDisplayFunc(renderScene);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboardDown);
     glutKeyboardUpFunc(keyboardUp);
-    glutPassiveMotionFunc(mouseMotion);
     glutMouseFunc(onMouseClick);
+    glutPassiveMotionFunc(mouseMotion);
+    glutMotionFunc(mouseMotion);  // Add this to handle mouse movement even during clicks
+
+    // Optional: Set up mouse capture more explicitly
+    glutSetCursor(GLUT_CURSOR_NONE);
+    glutWarpPointer(WIDTH / 2, HEIGHT / 2);  // Initial cursor centering
     update(1000);
 
-    glutSetCursor(GLUT_CURSOR_NONE);
+//    glutSetCursor(GLUT_CURSOR_NONE);
+// Enable fullscreen to avoid focus issues
+//    glutFullScreen();
+
+    // Prevent focus loss
+    glutIdleFunc(regainFocus);
 
     glutMainLoop();
     return 0;
