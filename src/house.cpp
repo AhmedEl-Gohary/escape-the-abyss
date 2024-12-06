@@ -34,6 +34,13 @@ bool House::checkDoorCollision(const glm::vec3& playerPosition, float playerRadi
     return collisionX && collisionY && collisionZ;
 }
 
+bool House::checkFlashlightCollision(const glm::vec3 &cameraPosition) {
+    if (isFlashlightEquipped) return false;
+
+    float distance = glm::length(cameraPosition - glm::vec3(flashlightTransformation[3]));
+    return distance < COLLECTIBLE_PICKUP_RANGE;
+}
+
 void House::generateFloor() {
     floorModel.loadModel("floor");
 
@@ -168,6 +175,28 @@ void House::renderWhiteboard() {
     renderPickupPrompt("3 + 3 = ?");
 }
 
+void House::generateLightbulb() {
+    lightbulbModel.loadModel("lightbulb");
+    glm::vec3 lightbulbPos (MAX_X - 3 * WALL_DEPTH, 4.0f, 0.0f);
+    glm::mat4 lightbulbTransform (1.0f);
+    lightbulbTransform = glm::translate(lightbulbTransform, lightbulbPos);
+    lightbulbTransform = glm::rotate(lightbulbTransform, glm::radians(90.0f),
+                                     glm::vec3 (1.0f, 0.0f, 0.0f));
+    lightbulbTransform = glm::rotate(lightbulbTransform, glm::radians(90.0f),
+                                     glm::vec3 (0.0f, 0.0f, 1.0f));
+    lightbulbTransform = glm::scale(lightbulbTransform, glm::vec3 (0.2f, 0.2f, 0.2f));
+    lightbulbTransformation = lightbulbTransform;
+}
+
+void House::generateFlashlight() {
+    flashlightModel.loadModel("flashlight");
+    glm::vec3 flashlightPos (MAX_X - 10 * WALL_DEPTH, -3.0f, MAX_Z - 10 * WALL_DEPTH);
+    glm::mat4 flashlightTransform (1.0f);
+    flashlightTransform = glm::translate(flashlightTransform, flashlightPos);
+    flashlightTransform = glm::scale(flashlightTransform, glm::vec3 (0.2f, 0.2f, 0.2f));
+    flashlightTransformation = flashlightTransform;
+}
+
 void House::renderFloor() {
     for (const auto& transform : floorTransformations) {
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -237,11 +266,27 @@ bool House::checkKeyCollision(const glm::vec3& cameraPosition) {
     return distance < abs(camera.getCameraHeight()) + COLLECTIBLE_PICKUP_RANGE;
 }
 
+void House::renderLightbulb() {
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE,
+                       glm::value_ptr(lightbulbTransformation));
+    lightbulbModel.draw();
+}
+
+void House::renderFlashlight() {
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE,
+                       glm::value_ptr(flashlightTransformation));
+    flashlightModel.draw();
+}
+
 void House::init() {
     generateFloor();
     generateWalls();
     generateDoor();
     generateKey();
+    generateLightbulb();
+    generateFlashlight();
 }
 
 void House::renderScene() {
@@ -275,7 +320,17 @@ void House::renderScene() {
     renderDoor();
     renderWhiteboard();
     renderKey();
+    renderLightbulb();
 
+    if (isFlashlightEquipped) {
+
+    } else {
+        renderFlashlight();
+    }
+
+    if (checkFlashlightCollision(camera.getCameraPos())) {
+        renderPickupPrompt("Press E to pickup");
+    }
     if (isShowingPickupPrompt && !whiteboard.isVisible) {
         renderPickupPrompt("Press E to pickup");
     }

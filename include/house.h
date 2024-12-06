@@ -72,6 +72,7 @@ private:
     // Collision and interaction methods
     bool checkDoorCollision(const glm::vec3& playerPosition, float playerRadius);
     bool checkKeyCollision(const glm::vec3& cameraPosition);
+    bool checkFlashlightCollision(const glm::vec3& cameraPosition);
     void toggleFlashlight();
 
 public:
