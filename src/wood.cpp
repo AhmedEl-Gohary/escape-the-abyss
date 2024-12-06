@@ -210,6 +210,7 @@ void Wood::processSwordAttack() {
             float distanceToMonster = glm::length(monster.position - playerPos);
 
             if (distanceToMonster <= SWORD_ATTACK_RANGE && angle <= 45.0f) {
+                playSound(zombie);
                 monster.isAlive = false;
             }
         }
@@ -430,6 +431,7 @@ void Wood::init() {
     generateForest(TREE_COUNT);
     generateMonsters(MONSTER_COUNT);
     generateCollectibles(COLLECTIBLE_COUNT);
+    loadSounds();
 }
 
 void Wood::updateScene() {
@@ -581,6 +583,7 @@ void Wood::processMonsterAttack() {
             currentTime - lastAttackTime).count() >= 3) {
 
         playerLives--;
+        playSound(hit, 30, false);
         lastAttackTime = currentTime;
         isBeingAttacked = true;
 
@@ -795,4 +798,14 @@ void Wood::onMouseClick(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && equippedSword) {
         processSwordAttack();
     }
+}
+
+void Wood::cleanUp() {
+    stopSound(zombie);
+    stopSound(hit);
+}
+
+void Wood::loadSounds() {
+    loadSound(zombie, zombieBuffer, "zombie.wav");
+    loadSound(hit, hitBuffer, "collisionSound.wav");
 }

@@ -5,13 +5,13 @@
 #include <iostream>
 #define SOUND_DIR "../assets/sounds/"
 
-bool loadSound(sf::Sound& sound, sf::SoundBuffer& soundBuffer, const std::string& path){
+inline bool loadSound(sf::Sound& sound, sf::SoundBuffer& soundBuffer, const std::string& path){
     bool isLoaded = soundBuffer.loadFromFile(SOUND_DIR + path);
     sound.setBuffer(soundBuffer);
     return isLoaded;
 }
 
-void playSound(sf::Sound& sound , int vol = 35 , bool loop = true) {
+inline void playSound(sf::Sound& sound , int vol = 35 , bool loop = true) {
     if (!sound.getBuffer()) {
         std::cerr << "Sound not available.\n";  // Optional fallback behavior
     }
@@ -20,7 +20,7 @@ void playSound(sf::Sound& sound , int vol = 35 , bool loop = true) {
     sound.play();
 }
 
-void stopSound(sf::Sound& sound) {
+inline void stopSound(sf::Sound& sound) {
     if (!sound.getBuffer()){
         std::cerr << "Sound not available.\n";
     }

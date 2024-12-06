@@ -1,8 +1,15 @@
 #include "house.h"
 
 House::House(GLuint shaderProgram, glm::mat4 &projection) :
-    Environment(shaderProgram, projection), isNearCollectible(false),
-    isShowingPickupPrompt(false){}
+    Environment(shaderProgram, projection){}
+
+void House::loadSounds(){
+    loadSound(background, backgroundBuffer, "background.wav");
+    loadSound(doorOpening, doorOpeningBuffer, "door.wav");
+    loadSound(walking, walkingBuffer, "walk.wav");
+    loadSound(collect, collectBuffer, "collectSound.wav");
+    loadSound(doorLocked, doorLockedBuffer, "doorLock.wav");
+}
 
 bool House::checkDoorCollision(const glm::vec3& playerPosition, float playerRadius) {
     // Extract door's position from the transformation matrix
@@ -322,6 +329,8 @@ void House::init() {
     generateKey();
     generateLightbulb();
     generateFlashlight();
+    loadSounds();
+    playSound(background, 35, true);
 }
 
 float generateFlickerIntensity() {
@@ -418,8 +427,12 @@ void House::updateScene() {
     processKeyboard();
     if (checkDoorCollision(camera.getCameraPos(), COLLISION_RADIUS * 0.8f)){
         if (isKeyEquipped) {
+            playSound(doorOpening, 30, false);
+            for (int i = 0; i < 1000000000; i++){} // small delay in order to hear the sound
             isRunning = false;
             return;
+        } else {
+            playSound(doorLocked, 30, false);
         }
     }
     glutPostRedisplay();
@@ -437,6 +450,7 @@ void House::processKeyboard() {
         }
         if (keys['6']) {
             whiteboard.isVisible = false;
+            playSound(collect, 15, false);
             whiteboard.solved = true;
         }
     }
@@ -451,6 +465,7 @@ void House::processKeyboard() {
 
     if (!isFlashlightEquipped && checkFlashlightCollision(camera.getCameraPos()) && keys['e']) {
         isFlashlightEquipped = true;
+        playSound(collect, 15, false);
         keys['e'] = false;
     }
 
@@ -468,4 +483,12 @@ void House::onMouseClick(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && isFlashlightEquipped) {
         toggleFlashlight();
     }
+}
+
+void House::cleanUp() {
+    stopSound(background);
+    stopSound(doorOpening);
+    stopSound(walking);
+    stopSound(collect);
+    stopSound(doorLocked);
 }

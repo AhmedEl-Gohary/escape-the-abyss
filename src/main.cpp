@@ -13,7 +13,6 @@
 #include "camera.h"
 #include "wood.h"
 #include "house.h"
-#include "sound.h"
 
 Camera camera;
 Environment *environment;
@@ -108,15 +107,19 @@ void onMouseClick(int button, int state, int x, int y) {
 }
 
 void update(int value) {
+    if (!environment) return;
     environment->updateScene();
     if (!environment->isRunning) { // scene ended
         if (dynamic_cast<House*>(environment)) {
+            environment->cleanUp();
             environment = new Wood(shaderProgram, projection);
             environment->init();
         } else if (dynamic_cast<Wood*>(environment)) {
+            environment->cleanUp();
             std::cout << "env is an instance of Wood.\n";
         } else {
             std::cout << "env is of unknown type.\n";
+            environment = nullptr;
         }
     }
     glutTimerFunc(16, update, 0);
