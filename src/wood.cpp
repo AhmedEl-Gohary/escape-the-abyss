@@ -270,13 +270,13 @@ void Wood::renderEquippedCollectibles() {
     float angle = atan2(cameraFront.x, cameraFront.z);
 
     // Offsets for holding sword and torch
-    float swordOffsetX = 0.2f; // Right hand
-    float swordOffsetY = -0.2f; // Below the camera
-    float swordOffsetZ = 0.3f;  // Forward
+    float swordOffsetX = 0.9f; // Right hand
+    float swordOffsetY = -1.8f; // Below the camera
+    float swordOffsetZ = 1.3f;  // Forward
 
-    float torchOffsetX = -0.2f; // Left hand
-    float torchOffsetY = -0.2f; // Below the camera
-    float torchOffsetZ = 0.3f;  // Forward
+    float torchOffsetX = -0.9f; // Left hand
+    float torchOffsetY = -1.8f; // Below the camera
+    float torchOffsetZ = 1.3f;  // Forward
 
     // Positioning the sword
     if (equippedSword) {
@@ -287,7 +287,7 @@ void Wood::renderEquippedCollectibles() {
         );
 
         // Rotation to face forward
-        swordTransform = glm::rotate(swordTransform, glm::radians(-90.0f), glm::vec3(0, 1, 0));
+        swordTransform = glm::rotate(swordTransform, angle, glm::vec3(0, 1, 0));
 
         // Apply swing animation if swinging
         if (isSwordSwinging) {
@@ -311,7 +311,7 @@ void Wood::renderEquippedCollectibles() {
         );
 
         // Rotate torch to face forward
-        torchTransform = glm::rotate(torchTransform, glm::radians(90.0f), glm::vec3(0, 1, 0));
+        torchTransform = glm::rotate(torchTransform, angle, glm::vec3(0, 1, 0));
 
         GLuint torchModelLoc = glGetUniformLocation(shaderProgram, "model");
         glUniformMatrix4fv(torchModelLoc, 1, GL_FALSE, glm::value_ptr(torchTransform));

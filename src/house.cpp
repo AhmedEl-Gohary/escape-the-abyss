@@ -378,8 +378,9 @@ void House::renderEquippedFlashlight() {
     glm::vec3 cameraFront = camera.getFrontVector();
     glm::vec3 cameraUp = camera.getCameraUp();
 
-    // Calculate flashlight position (slightly below the camera position)
-    glm::vec3 flashlightPos = cameraPos - glm::vec3(1.0f, 2.0f, 0.0f);
+    // Adjust the flashlight position relative to the camera
+    glm::vec3 flashlightOffset(-2.5f, -4.0f, 1.5f); // Adjust these values for desired position
+    glm::vec3 flashlightPos = cameraPos;
 
     // Create transformation matrix for flashlight
     glm::mat4 flashlightTransform = glm::mat4(1.0f);
@@ -394,9 +395,15 @@ void House::renderEquippedFlashlight() {
     flashlightTransform[1] = glm::vec4(adjustedUp, 0.0f);
     flashlightTransform[2] = glm::vec4(flashlightDirection, 0.0f);
 
+    // Apply scaling to make the flashlight smaller
+    glm::vec3 flashlightScale(0.3f, 0.3f, 0.3f); // Adjust scale factor as needed
+    flashlightTransform = glm::scale(flashlightTransform, flashlightScale);
+
+    flashlightTransform = glm::translate(flashlightTransform, flashlightOffset);
     // Send the transformation matrix to the shader
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(flashlightTransform));
     flashlightTransformation = flashlightTransform;
+
     // Render the flashlight model
     flashlightModel.draw();
 }
@@ -462,7 +469,7 @@ void House::renderScene() {
                 glm::value_ptr(glm::vec3(lightbulbTransformation[3]) +
                 glm::vec3(1.0f, 0.0f, 0.0f)));
     glUniform1f(glGetUniformLocation(shaderProgram, "lightBulbFlicker"),
-                generateFlickerIntensity() + 0.6);
+                generateFlickerIntensity() + 1);
     glUniform1f(glGetUniformLocation(shaderProgram, "lightBulbAmbientStrength"),
                 4.0f);
 
