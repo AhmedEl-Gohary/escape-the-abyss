@@ -4,6 +4,64 @@ House::House(GLuint shaderProgram, glm::mat4 &projection) :
     Environment(shaderProgram, projection), isNearCollectible(false),
     isShowingPickupPrompt(false){}
 
+void House::renderPickupPrompt(const std::string& text) {
+    // Store current matrix states
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set up orthographic projection
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    glOrtho(0, width, 0, height, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable current shader
+    glUseProgram(0);
+
+    // Set rendering color with transparency
+    glColor4f(1.0f, 1.0f, 1.0f, 0.8f);
+
+    // Enable blending for semi-transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Calculate text width using stroke font
+    float totalWidth = 0;
+    for (char c : text) totalWidth += glutStrokeWidth(GLUT_STROKE_ROMAN, c);
+
+    // Position text at bottom center
+    float scaleFactor = 1.2f;  // Adjust for desired size
+    float xPos = (width - totalWidth * scaleFactor) / 2.0f;
+    float yPos = height * 0.15f;
+
+    // Translate and scale
+    glPushMatrix();
+    glTranslatef(xPos, yPos, 0);
+    glScalef(scaleFactor, scaleFactor, scaleFactor);
+
+    for (char c : text) {
+        glLineWidth(13.0f);
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+        glLineWidth(1.0f);
+    }
+
+    glPopMatrix();
+
+    glDisable(GL_BLEND);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glUseProgram(shaderProgram);
+}
+
 bool House::checkDoorCollision(const glm::vec3& playerPosition, float playerRadius) {
     // Extract door's position from the transformation matrix
     glm::vec3 doorPos = glm::vec3(doorTransformation[3]);
@@ -32,6 +90,13 @@ bool House::checkDoorCollision(const glm::vec3& playerPosition, float playerRadi
 
     // Return true if collision occurs in all axes
     return collisionX && collisionY && collisionZ;
+}
+
+bool House::checkFlashlightCollision(const glm::vec3 &cameraPosition) {
+    if (isFlashlightEquipped) return false;
+
+    float distance = glm::length(cameraPosition - glm::vec3(flashlightTransformation[3]));
+    return distance < COLLECTIBLE_PICKUP_RANGE;
 }
 
 void House::generateFloor() {
@@ -92,6 +157,28 @@ void House::generateDoor() {
     doorTransformation = doorTransform;
 }
 
+void House::generateLightbulb() {
+    lightbulbModel.loadModel("lightbulb");
+    glm::vec3 lightbulbPos (MAX_X - 3 * WALL_DEPTH, 4.0f, 0.0f);
+    glm::mat4 lightbulbTransform (1.0f);
+    lightbulbTransform = glm::translate(lightbulbTransform, lightbulbPos);
+    lightbulbTransform = glm::rotate(lightbulbTransform, glm::radians(90.0f),
+                                     glm::vec3 (1.0f, 0.0f, 0.0f));
+    lightbulbTransform = glm::rotate(lightbulbTransform, glm::radians(90.0f),
+                                     glm::vec3 (0.0f, 0.0f, 1.0f));
+    lightbulbTransform = glm::scale(lightbulbTransform, glm::vec3 (0.2f, 0.2f, 0.2f));
+    lightbulbTransformation = lightbulbTransform;
+}
+
+void House::generateFlashlight() {
+    flashlightModel.loadModel("flashlight");
+    glm::vec3 flashlightPos (MAX_X - 10 * WALL_DEPTH, -3.0f, MAX_Z - 10 * WALL_DEPTH);
+    glm::mat4 flashlightTransform (1.0f);
+    flashlightTransform = glm::translate(flashlightTransform, flashlightPos);
+    flashlightTransform = glm::scale(flashlightTransform, glm::vec3 (0.2f, 0.2f, 0.2f));
+    flashlightTransformation = flashlightTransform;
+}
+
 void House::renderFloor() {
     for (const auto& transform : floorTransformations) {
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -147,10 +234,26 @@ void House::renderDoor() {
     doorModel.draw();
 }
 
+void House::renderLightbulb() {
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE,
+                       glm::value_ptr(lightbulbTransformation));
+    lightbulbModel.draw();
+}
+
+void House::renderFlashlight() {
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE,
+                       glm::value_ptr(flashlightTransformation));
+    flashlightModel.draw();
+}
+
 void House::init() {
     generateFloor();
     generateWalls();
     generateDoor();
+    generateLightbulb();
+    generateFlashlight();
 }
 
 void House::renderScene() {
@@ -182,9 +285,16 @@ void House::renderScene() {
     renderFloor();
     renderWalls();
     renderDoor();
+    renderLightbulb();
 
-    if (isShowingPickupPrompt) {
-//        renderPickupPrompt("Press E to pickup");
+    if (isFlashlightEquipped) {
+
+    } else {
+        renderFlashlight();
+    }
+
+    if (checkFlashlightCollision(camera.getCameraPos())) {
+        renderPickupPrompt("Press E to pickup");
     }
 
     glutSwapBuffers();
