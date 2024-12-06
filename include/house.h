@@ -9,6 +9,16 @@
 #include "environment.h"
 #include "model_loader.h"
 
+// Add these to the private section of Wood class
+class Whiteboard {
+public:
+    bool isVisible;
+    std::string problem;
+    bool solved;
+
+    Whiteboard() : isVisible(false), problem("3 + 3 = ?"), solved(false) {}
+};
+
 class Wall {
 public:
     glm::vec3 lowerPoint, upperPoint;
@@ -40,6 +50,8 @@ private:
     bool isNearCollectible{};
     bool isShowingPickupPrompt{};
 
+    Whiteboard whiteboard;
+    void renderWhiteboard();
     // Spawn and management methods
     void generateWalls();
     void generateKey();
@@ -59,6 +71,7 @@ private:
 
     // Collision and interaction methods
     bool checkDoorCollision(const glm::vec3& playerPosition, float playerRadius);
+    bool checkKeyCollision(const glm::vec3& cameraPosition);
     bool checkFlashlightCollision(const glm::vec3& cameraPosition);
     void toggleFlashlight();
 
