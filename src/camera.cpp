@@ -41,25 +41,10 @@ glm::mat4 Camera::applyView() {
 }
 
 void Camera::adjustCameraCenter(int x, int y) {
-    // Static variables to track mouse movement deltas
-    static int lastX = 0;
-    static int lastY = 0;
-    static bool firstMouse = true;
-
-    if (firstMouse) {
-        lastX = x;
-        lastY = y;
-        firstMouse = false;
-        return;
-    }
-
     // Calculate the offset since last mouse movement
-    float xoffset = x - lastX;
-    float yoffset = lastY - y;  // Reversed to match your original code
+    float xoffset = x;
+    float yoffset = y;  // Reversed to match your original code
 
-    // Update last positions
-    lastX = x;
-    lastY = y;
 
     const float sensitivity = 0.1f;
     xoffset *= sensitivity;
