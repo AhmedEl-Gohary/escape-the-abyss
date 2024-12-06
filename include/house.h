@@ -3,6 +3,7 @@
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include <iostream>
 #include <vector>
 #include <chrono>
 #include "environment.h"
@@ -34,10 +35,10 @@ private:
 
     std::vector<Wall> walls;
     std::vector<glm::mat4> floorTransformations;
-    bool isKeyEquipped;
-    bool isFlashlightEquipped;
-    bool isNearCollectible;
-    bool isShowingPickupPrompt;
+    bool isKeyEquipped{};
+    bool isFlashlightEquipped{};
+    bool isNearCollectible{};
+    bool isShowingPickupPrompt{};
 
     // Spawn and management methods
     void generateWalls();
@@ -57,7 +58,7 @@ private:
     void renderPickupPrompt(const std::string& text);
 
     // Collision and interaction methods
-    bool checkCollision(const glm::vec3& cameraPosition, const glm::vec3& treePos);
+    bool checkDoorCollision(const glm::vec3& playerPosition, float playerRadius);
     bool checkCollectibleCollision(const glm::vec3& cameraPosition);
     void toggleFlashlight();
 

@@ -4,6 +4,36 @@ House::House(GLuint shaderProgram, glm::mat4 &projection) :
     Environment(shaderProgram, projection), isNearCollectible(false),
     isShowingPickupPrompt(false){}
 
+bool House::checkDoorCollision(const glm::vec3& playerPosition, float playerRadius) {
+    // Extract door's position from the transformation matrix
+    glm::vec3 doorPos = glm::vec3(doorTransformation[3]);
+
+    // Get the scaling factors from the transformation matrix
+    float scaleX = glm::length(glm::vec3(doorTransformation[0]));
+    float scaleY = glm::length(glm::vec3(doorTransformation[1]));
+    float scaleZ = glm::length(glm::vec3(doorTransformation[2]));
+
+    // Define the door's approximate bounding box
+    float halfWidth = 0.5f * scaleX;
+    float halfHeight = 0.5f * scaleY;
+    float halfDepth = 0.5f * scaleZ;
+
+    // Calculate the door's min and max points
+    glm::vec3 doorMin = doorPos - glm::vec3(halfWidth, halfHeight, halfDepth);
+    glm::vec3 doorMax = doorPos + glm::vec3(halfWidth, halfHeight, halfDepth);
+
+    // Perform AABB (Axis-Aligned Bounding Box) collision check
+    bool collisionX = (playerPosition.x + playerRadius > doorMin.x) &&
+                      (playerPosition.x - playerRadius < doorMax.x);
+    bool collisionY = (playerPosition.y + playerRadius > doorMin.y) &&
+                      (playerPosition.y - playerRadius < doorMax.y);
+    bool collisionZ = (playerPosition.z + playerRadius > doorMin.z) &&
+                      (playerPosition.z - playerRadius < doorMax.z);
+
+    // Return true if collision occurs in all axes
+    return collisionX && collisionY && collisionZ;
+}
+
 void House::generateFloor() {
     floorModel.loadModel("floor");
 
@@ -52,6 +82,16 @@ void House::generateWalls() {
     walls.push_back(wall4);
 }
 
+void House::generateDoor() {
+    doorModel.loadModel("door");
+
+    glm::vec3 doorPosition (MAX_X - 3 * WALL_DEPTH, -2.5f, 0.0f);
+    glm::mat4 doorTransform (1.0f);
+    doorTransform = glm::translate(doorTransform, doorPosition);
+    doorTransform = glm::scale(doorTransform, glm::vec3 (1.0f, 2.0f, 2.0f));
+    doorTransformation = doorTransform;
+}
+
 void House::renderFloor() {
     for (const auto& transform : floorTransformations) {
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -94,16 +134,23 @@ void House::renderWall(const Wall& wall) {
     wallModel.draw();
 }
 
-
 void House::renderWalls() {
     for (auto wall : walls) {
         renderWall(wall);
     }
 }
 
+void House::renderDoor() {
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE,
+                       glm::value_ptr(doorTransformation));
+    doorModel.draw();
+}
+
 void House::init() {
     generateFloor();
     generateWalls();
+    generateDoor();
 }
 
 void House::renderScene() {
@@ -134,6 +181,7 @@ void House::renderScene() {
 
     renderFloor();
     renderWalls();
+    renderDoor();
 
     if (isShowingPickupPrompt) {
 //        renderPickupPrompt("Press E to pickup");
@@ -144,6 +192,12 @@ void House::renderScene() {
 
 void House::updateScene() {
     processKeyboard();
+    if (checkDoorCollision(camera.getCameraPos(), COLLISION_RADIUS * 0.8f)){
+        if (isKeyEquipped) {
+            isRunning = false;
+            return;
+        }
+    }
     glutPostRedisplay();
 }
 

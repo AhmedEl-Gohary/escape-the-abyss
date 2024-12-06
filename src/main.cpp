@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <unistd.h>
 #include <vector>
 // header files
 #include "camera.h"
@@ -71,7 +72,6 @@ GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
     return curShaderProgram;
 }
 
-
 void setupOpenGL() {
     glEnable(GL_DEPTH_TEST);
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
@@ -109,6 +109,16 @@ void onMouseClick(int button, int state, int x, int y) {
 
 void update(int value) {
     environment->updateScene();
+    if (!environment->isRunning) { // scene ended
+        if (dynamic_cast<House*>(environment)) {
+            environment = new Wood(shaderProgram, projection);
+            environment->init();
+        } else if (dynamic_cast<Wood*>(environment)) {
+            std::cout << "env is an instance of Wood.\n";
+        } else {
+            std::cout << "env is of unknown type.\n";
+        }
+    }
     glutTimerFunc(16, update, 0);
 }
 
