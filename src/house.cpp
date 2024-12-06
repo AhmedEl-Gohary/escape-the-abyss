@@ -1,7 +1,7 @@
 #include "house.h"
 
 House::House(GLuint shaderProgram, glm::mat4 &projection) :
-    Environment(shaderProgram, projection){}
+    Environment(shaderProgram, projection){playerModel.loadModel("player");}
 
 void House::loadSounds(){
     loadSound(background, backgroundBuffer, "background.wav");
@@ -117,6 +117,30 @@ void House::generateKey() {
     keyTransform = glm::rotate(keyTransform, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 //    keyTransform = glm::scale(keyTransform, glm::vec3 (0.5f, 0.5f, 0.5f));
     keyTransformation = keyTransform;
+}
+
+void House::renderPlayer() {
+    glm::mat4 model = glm::mat4(1.0f);
+
+    // Position the player model at the camera's position
+    playerPosition = camera.getCameraPos();
+    playerPosition.y = playerY;
+    model = glm::translate(model, playerPosition);
+
+    // Rotate the player model to match camera direction
+    glm::vec3 cameraFront = camera.getFrontVector();
+    float angle = atan2(cameraFront.x, cameraFront.z) + glm::radians(90.0f);
+    model = glm::rotate(model, angle + 0.2f * sinf(playerRotation / 4.0f) , glm::vec3(0, 1, 0));
+
+    // Adjust scale if needed
+//    model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+
+    // Set model matrix uniform in shader
+    GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Render the player model
+    playerModel.draw();
 }
 
 void House::renderPickupPrompt(const std::string& text) {
@@ -396,6 +420,7 @@ void House::renderScene() {
                 cos(glm::radians(17.5f)));
 
     // Render scene elements
+    renderPlayer();
     renderFloor();
     renderWalls();
     renderDoor();
@@ -435,6 +460,14 @@ void House::updateScene() {
             playSound(doorLocked, 30, false);
         }
     }
+    playerY += speed;
+    speed -= gravity;
+    if (playerY < -3.5){
+        playerY = -3.5;
+        speed = 0;
+        isJumping = false;
+    }
+    camera.updateY(playerY + 3.5);
     glutPostRedisplay();
 }
 
@@ -456,6 +489,20 @@ void House::processKeyboard() {
     }
 
     if (whiteboard.isVisible) return;
+
+    if (keys['a'] || keys['w'] || keys['s'] || keys['d']){
+        if (walking.getStatus() == sf::SoundSource::Stopped)
+            playSound(walking, 35, false);
+        playerRotation += 1;
+    }else{
+        playerRotation = 0;
+    }
+
+    if (keys[' ']){
+        if(!isJumping) speed = 1;
+        isJumping = true;
+        keys[' '] = false;
+    }
 
     if (isShowingPickupPrompt && keys['e']){
         isShowingPickupPrompt = false;

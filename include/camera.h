@@ -13,7 +13,7 @@ const glm::vec3 initialCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 initialCameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Mouse movement variables
-const float initialYaw = -90.0f, initialPitch = 0.0f;
+const float initialYaw = 0.0f, initialPitch = 0.0f;
 const float initialCenterX = WIDTH / 2.0f;
 const float initialCenterY = HEIGHT / 2.0f;
 
@@ -51,7 +51,8 @@ public:
     glm::vec3 getFrontVector();
     float getCameraHeight();
     float getCameraSpeed();
-
+    bool isFirstPerson(){return currentCameraMode == FIRST_PERSON;}
+    void updateY(float y){cameraPos.y = CAMERA_HEIGHT + y;}
     void setCameraPos(glm::vec3 cameraPos);
 };
 #endif

@@ -40,7 +40,11 @@ public:
 
 class Wood : public Environment {
 private:
-    ModelLoader treeModel, monsterModel,
+    glm::vec3 playerPosition;
+    float playerRotation = 0;
+    bool isJumping = false;
+    float speed = 0, gravity = 0.16, playerY = -3.5;
+    ModelLoader treeModel, monsterModel, playerModel,
             swordModel, torchModel, grassModel, skyModel;
 
     glm::mat4 skyTransformation;
@@ -50,8 +54,8 @@ private:
     std::vector<Monster> monsters;
     std::vector<Collectible> collectibles;
 
-    sf::SoundBuffer hitBuffer, zombieBuffer;
-    sf::Sound hit, zombie;
+    sf::SoundBuffer hitBuffer, zombieBuffer, walkingBuffer;
+    sf::Sound hit, zombie, walking;
 
     Collectible* equippedSword;
     Collectible* equippedTorch;
@@ -65,6 +69,8 @@ private:
     void generateForest(int treeCount);
     void generateMonsters(int monsterCount);
     void generateCollectibles(int collectibleCount);
+
+    void renderPlayer();
     void renderMonsters();
     void renderCollectibles();
     void renderGrass();

@@ -39,7 +39,11 @@ public:
 
 class House : public Environment {
 private:
-    ModelLoader floorModel, wallModel, flashlightModel, lightbulbModel, keyModel, doorModel;
+    glm::vec3 playerPosition;
+    float playerRotation = 0;
+    bool isJumping = false;
+    float speed = 0, gravity = 0.16, playerY = -3.5;
+    ModelLoader floorModel, wallModel, flashlightModel, lightbulbModel, keyModel, doorModel, playerModel;
     glm::mat4 flashlightTransformation, lightbulbTransformation,
         keyTransformation, doorTransformation;
 
@@ -71,6 +75,7 @@ private:
     void renderLightbulb();
     void renderFloor();
     void renderEquippedFlashlight();
+    void renderPlayer();
     void renderPickupPrompt(const std::string& text);
     void loadSounds();
 

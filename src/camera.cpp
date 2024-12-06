@@ -5,8 +5,8 @@ glm::vec3 Camera::getNewCameraPosition(bool keys[256]) {
     glm::vec3 movementDirection = cameraFront;
 
     if (currentCameraMode == THIRD_PERSON) {
-        movementDirection.y = 0;
         movementDirection = glm::normalize(movementDirection);
+        movementDirection.y = 0;
     }
 
     if (keys['w']) newCameraPos += CAMERA_SPEED * movementDirection;
@@ -22,7 +22,7 @@ glm::vec3 Camera::getNewCameraPosition(bool keys[256]) {
 
     // Maintain camera height based on mode
     if (currentCameraMode == FIRST_PERSON) {
-        newCameraPos.y = CAMERA_HEIGHT;
+        newCameraPos.y = cameraPos.y;
     }
 
     return newCameraPos;
