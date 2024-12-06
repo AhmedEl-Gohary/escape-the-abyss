@@ -92,6 +92,82 @@ void House::generateDoor() {
     doorTransformation = doorTransform;
 }
 
+void House::generateKey() {
+    keyModel.loadModel("key");
+
+    glm::vec3 keyPosition (-MAX_X + 2, -2, 0.0f);
+    glm::mat4 keyTransform (1.0f);
+    keyTransform = glm::translate(keyTransform, keyPosition);
+    keyTransform = glm::rotate(keyTransform, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    keyTransform = glm::rotate(keyTransform, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    keyTransform = glm::rotate(keyTransform, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//    keyTransform = glm::scale(keyTransform, glm::vec3 (0.5f, 0.5f, 0.5f));
+    keyTransformation = keyTransform;
+}
+
+void House::renderPickupPrompt(const std::string& text) {
+    // Store current matrix states
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set up orthographic projection
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    glOrtho(0, width, 0, height, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable current shader
+    glUseProgram(0);
+
+    // Set rendering color with transparency
+    glColor4f(1.0f, 1.0f, 1.0f, 0.8f);
+
+    // Enable blending for semi-transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Calculate text width using stroke font
+    float totalWidth = 0;
+    for (char c : text) totalWidth += glutStrokeWidth(GLUT_STROKE_ROMAN, c);
+
+    // Position text at bottom center
+    float scaleFactor = 1.2f;  // Adjust for desired size
+    float xPos = (width - totalWidth * scaleFactor) / 2.0f;
+    float yPos = height * 0.15f;
+
+    // Translate and scale
+    glPushMatrix();
+    glTranslatef(xPos, yPos, 0);
+    glScalef(scaleFactor, scaleFactor, scaleFactor);
+
+    for (char c : text) {
+        glLineWidth(13.0f);
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+        glLineWidth(1.0f);
+    }
+
+    glPopMatrix();
+
+    glDisable(GL_BLEND);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glUseProgram(shaderProgram);
+}
+
+void House::renderWhiteboard() {
+    if (!whiteboard.isVisible) return;
+    renderPickupPrompt("3 + 3 = ?");
+}
+
 void House::renderFloor() {
     for (const auto& transform : floorTransformations) {
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -147,10 +223,25 @@ void House::renderDoor() {
     doorModel.draw();
 }
 
+void House::renderKey() {
+    if (isKeyEquipped) return;
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE,
+                       glm::value_ptr(keyTransformation));
+    keyModel.draw();
+}
+
+bool House::checkKeyCollision(const glm::vec3& cameraPosition) {
+    if (isKeyEquipped) return false;
+    float distance = glm::length(cameraPosition - glm::vec3(keyTransformation[3]));
+    return distance < abs(camera.getCameraHeight()) + COLLECTIBLE_PICKUP_RANGE;
+}
+
 void House::init() {
     generateFloor();
     generateWalls();
     generateDoor();
+    generateKey();
 }
 
 void House::renderScene() {
@@ -182,9 +273,15 @@ void House::renderScene() {
     renderFloor();
     renderWalls();
     renderDoor();
+    renderWhiteboard();
+    renderKey();
 
-    if (isShowingPickupPrompt) {
-//        renderPickupPrompt("Press E to pickup");
+    if (isShowingPickupPrompt && !whiteboard.isVisible) {
+        renderPickupPrompt("Press E to pickup");
+    }
+
+    if (whiteboard.solved){
+        isKeyEquipped = true;
     }
 
     glutSwapBuffers();
@@ -204,6 +301,27 @@ void House::updateScene() {
 void House::processKeyboard() {
     glm::vec3 newCameraPos = camera.getNewCameraPosition(keys);
     if (keys[27]) exit(0);
+
+    // Whiteboard toggle
+    if (whiteboard.isVisible) {
+        if (keys['e']){
+            whiteboard.isVisible = false;
+            keys['e'] = false;
+        }
+        if (keys['6']) {
+            whiteboard.isVisible = false;
+            whiteboard.solved = true;
+        }
+    }
+
+    if (whiteboard.isVisible) return;
+
+    if (isShowingPickupPrompt && keys['e']){
+        isShowingPickupPrompt = false;
+        whiteboard.isVisible = true;
+        keys['e'] = false;
+    }
+
     bool collidesWithWall = false;
     for (auto wall : walls){
         collidesWithWall |= wall.checkCollision(newCameraPos, COLLISION_RADIUS);
@@ -211,6 +329,7 @@ void House::processKeyboard() {
     if (!collidesWithWall) {
         camera.setCameraPos(newCameraPos);
     }
+    isShowingPickupPrompt = checkKeyCollision(newCameraPos);
 }
 
 void House::onMouseClick(int button, int state, int x, int y) {
