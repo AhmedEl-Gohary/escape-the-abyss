@@ -47,6 +47,7 @@ private:
     std::vector<glm::mat4> floorTransformations;
     bool isKeyEquipped{};
     bool isFlashlightEquipped{};
+    bool isFlashlightOn{};
     bool isNearCollectible{};
     bool isShowingPickupPrompt{};
 

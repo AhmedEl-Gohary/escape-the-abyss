@@ -280,6 +280,41 @@ void House::renderFlashlight() {
     flashlightModel.draw();
 }
 
+void House::renderEquippedFlashlight() {
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+
+    // Get camera properties
+    glm::vec3 cameraPos = camera.getCameraPos();
+    glm::vec3 cameraFront = camera.getFrontVector();
+    glm::vec3 cameraUp = camera.getCameraUp();
+
+    // Calculate flashlight position (slightly below the camera position)
+    glm::vec3 flashlightPos = cameraPos - glm::vec3(1.0f, 2.0f, 0.0f);
+
+    // Create transformation matrix for flashlight
+    glm::mat4 flashlightTransform = glm::mat4(1.0f);
+    flashlightTransform = glm::translate(flashlightTransform, flashlightPos);
+
+    // Calculate the flashlight's orientation to align with the camera's direction
+    glm::vec3 flashlightDirection = glm::normalize(cameraFront);
+    glm::vec3 right = glm::normalize(glm::cross(cameraUp, flashlightDirection));
+    glm::vec3 adjustedUp = glm::normalize(glm::cross(flashlightDirection, right));
+
+    flashlightTransform[0] = glm::vec4(right, 0.0f);
+    flashlightTransform[1] = glm::vec4(adjustedUp, 0.0f);
+    flashlightTransform[2] = glm::vec4(flashlightDirection, 0.0f);
+
+    // Send the transformation matrix to the shader
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(flashlightTransform));
+    flashlightTransformation = flashlightTransform;
+    // Render the flashlight model
+    flashlightModel.draw();
+}
+
+void House::toggleFlashlight() {
+    isFlashlightOn = !isFlashlightOn;
+}
+
 void House::init() {
     generateFloor();
     generateWalls();
@@ -287,6 +322,17 @@ void House::init() {
     generateKey();
     generateLightbulb();
     generateFlashlight();
+}
+
+float generateFlickerIntensity() {
+    // Simple random flicker
+    float randomFlicker = static_cast<float>(rand()) / RAND_MAX;
+
+    // You can adjust these parameters to control flicker behavior
+    float flickerFrequency = 10.0f;  // How often it flickers
+    float flickerStrength = 0.5f;   // Intensity of the flicker
+
+    return sin(randomFlicker * flickerFrequency) * flickerStrength;
 }
 
 void House::renderScene() {
@@ -313,8 +359,34 @@ void House::renderScene() {
     GLuint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
     glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
 
-    // Render scene elements
+    // moon
+    glUniform1f(glGetUniformLocation(shaderProgram, "isMoonOn"), false);
 
+    // lightbulb
+    glUniform1i(glGetUniformLocation(shaderProgram, "isLightBulbOn"), true);
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightBulbColor"),
+                1.0f, 1.0f, 1.0f);
+    glUniform3fv(glGetUniformLocation(shaderProgram, "lightBulbPos"), 1,
+                glm::value_ptr(glm::vec3(lightbulbTransformation[3]) +
+                glm::vec3(1.0f, 0.0f, 0.0f)));
+    glUniform1f(glGetUniformLocation(shaderProgram, "lightBulbFlicker"),
+                generateFlickerIntensity() + 0.6);
+    glUniform1f(glGetUniformLocation(shaderProgram, "lightBulbAmbientStrength"),
+                4.0f);
+
+    // flashlight
+    glUniform1f(glGetUniformLocation(shaderProgram, "isFlashlightOn"), isFlashlightOn);
+    glUniform3f(glGetUniformLocation(shaderProgram, "flashlightColor"), 1.0f, 1.0f, 1.0f);
+    glUniform3fv(glGetUniformLocation(shaderProgram, "flashlightPos"), 1,
+                 glm::value_ptr(glm::vec3(flashlightTransformation[3])));
+    glUniform3fv(glGetUniformLocation(shaderProgram, "flashlightDirection"), 1,
+                 glm::value_ptr(glm::normalize(camera.getFrontVector())));
+    glUniform1f(glGetUniformLocation(shaderProgram, "flashlightCutOff"),
+                cos(glm::radians(12.5f)));
+    glUniform1f(glGetUniformLocation(shaderProgram, "flashlightOuterCutOff"),
+                cos(glm::radians(17.5f)));
+
+    // Render scene elements
     renderFloor();
     renderWalls();
     renderDoor();
@@ -323,7 +395,7 @@ void House::renderScene() {
     renderLightbulb();
 
     if (isFlashlightEquipped) {
-
+        renderEquippedFlashlight();
     } else {
         renderFlashlight();
     }
@@ -377,6 +449,11 @@ void House::processKeyboard() {
         keys['e'] = false;
     }
 
+    if (!isFlashlightEquipped && checkFlashlightCollision(camera.getCameraPos()) && keys['e']) {
+        isFlashlightEquipped = true;
+        keys['e'] = false;
+    }
+
     bool collidesWithWall = false;
     for (auto wall : walls){
         collidesWithWall |= wall.checkCollision(newCameraPos, COLLISION_RADIUS);
@@ -388,5 +465,7 @@ void House::processKeyboard() {
 }
 
 void House::onMouseClick(int button, int state, int x, int y) {
-
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && isFlashlightEquipped) {
+        toggleFlashlight();
+    }
 }
