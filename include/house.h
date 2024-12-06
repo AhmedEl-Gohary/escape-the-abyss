@@ -46,7 +46,7 @@ private:
     void generateFlashlight();
     void generateLightbulb();
     void generateFloor();
-    void renderWall(Wall &wall);
+    void renderWall(const Wall &wall);
     void renderWalls();
     void renderKey();
     void renderDoor();
@@ -63,8 +63,8 @@ private:
 
 public:
     // Constants
-    static constexpr float WOODS_SIZE = 100.0f;
-    static constexpr int TREE_COUNT = 30;
+    static constexpr float WALL_DEPTH = 0.5f;
+    static constexpr int COLLISION_RADIUS = 2.0f;
     static constexpr float TREE_RADIUS = 1.0f;
     static constexpr int MONSTER_COUNT = 4;
     static constexpr int COLLECTIBLE_COUNT = 2;

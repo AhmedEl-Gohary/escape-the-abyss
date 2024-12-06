@@ -40,30 +40,12 @@ glm::mat4 Camera::applyView() {
     return glm::lookAt(actualCameraPos, cameraPos + cameraFront, cameraUp);
 }
 
-void Camera::adjustCameraCenter(int x, int y) {
-    // Static variables to track mouse movement deltas
-    static int lastX = 0;
-    static int lastY = 0;
-    static bool firstMouse = true;
-
-    if (firstMouse) {
-        lastX = x;
-        lastY = y;
-        firstMouse = false;
-        return;
-    }
-
-    // Calculate the offset since last mouse movement
-    float xoffset = x - lastX;
-    float yoffset = lastY - y;  // Reversed to match your original code
-
-    // Update last positions
-    lastX = x;
-    lastY = y;
-
+void Camera::adjustCameraCenter(int deltaX, int deltaY) {
     const float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
+
+    // Apply mouse movement deltas directly
+    float xoffset = deltaX * sensitivity;
+    float yoffset = -deltaY * sensitivity;  // Negative to invert vertical look direction
 
     yaw   += xoffset;
     pitch += yoffset;
@@ -72,7 +54,7 @@ void Camera::adjustCameraCenter(int x, int y) {
     if (pitch > 89.0f)  pitch = 89.0f;
     if (pitch < -89.0f) pitch = -89.0f;
 
-    // Calculate new camera front vector
+    // Recalculate camera front vector
     glm::vec3 front;
     front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     front.y = sin(glm::radians(pitch));

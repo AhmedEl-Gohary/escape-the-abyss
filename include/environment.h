@@ -25,7 +25,25 @@ public:
     virtual void processKeyboard() = 0;
 
     void mouseMotion(int x, int y){
-        camera.adjustCameraCenter(x, y);
+        int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+        int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+
+        // Calculate center of the window
+        int centerX = windowWidth / 2;
+        int centerY = windowHeight / 2;
+
+        // Calculate delta movement
+        int deltaX = x - centerX;
+        int deltaY = y - centerY;
+
+        // Only process movement if there's a significant change
+        if (deltaX != 0 || deltaY != 0) {
+            // Adjust camera
+            camera.adjustCameraCenter(deltaX, deltaY);
+
+            // Reset cursor to window center
+            glutWarpPointer(centerX, centerY);
+        }
     }
 };
 
