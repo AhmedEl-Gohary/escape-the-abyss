@@ -53,8 +53,8 @@ private:
     std::vector<Monster> monsters;
     std::vector<Collectible> collectibles;
 
-    sf::SoundBuffer hitBuffer, zombieBuffer, walkingBuffer;
-    sf::Sound hit, zombie, walking;
+    sf::SoundBuffer hitBuffer, zombieBuffer, walkingBuffer, swordBuffer, torchBuffer;
+    sf::Sound hit, zombie, walking, sword, torch;
 
     Collectible* equippedSword;
     Collectible* equippedTorch;

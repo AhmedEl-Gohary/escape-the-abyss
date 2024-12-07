@@ -184,11 +184,13 @@ Collectible* Wood::checkCollectibleCollision(const glm::vec3& cameraPosition) {
 
 void Wood::processCollectiblePickup(Collectible* collectible) {
     if (collectible->type == Collectible::SWORD) {
+        playSound(sword, 20, false);
         equippedSword = collectible;
         collectible->isEquipped = true;
         collectible->isVisible = false;
     }
     else if (collectible->type == Collectible::TORCH) {
+        playSound(torch, 20, false);
         equippedTorch = collectible;
         collectible->isEquipped = true;
         collectible->isVisible = false;
@@ -509,7 +511,7 @@ void Wood::updateScene() {
     if (!oneMonsterAlive){
         isRunning = false;
         isWinning = true;
-        score = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        score = glutGet(GLUT_ELAPSED_TIME) / 1000;
         return;
     }
 
@@ -538,7 +540,7 @@ void Wood::renderScene() {
     glUniform3fv(glGetUniformLocation(shaderProgram, "moonColor"), 1,
                  glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
     glUniform3fv(glGetUniformLocation(shaderProgram, "moonPos"), 1,
-                 glm::value_ptr(glm::vec3(50.0f, 50.0f, 50.0f)));
+                 glm::value_ptr(glm::vec3(0.0f, 50.0f, 0.0f)));
     glUniform1f(glGetUniformLocation(shaderProgram, "moonIntensity"), 30.0f);
     // lightbulb
     glUniform1f(glGetUniformLocation(shaderProgram, "isLightBulbOn"), false);
@@ -814,8 +816,6 @@ void Wood::renderScore() {
     glUseProgram(shaderProgram);
 }
 
-
-
 void Wood::renderPickupPrompt(const std::string& text) {
     // Store current matrix states
     glMatrixMode(GL_PROJECTION);
@@ -933,4 +933,6 @@ void Wood::loadSounds() {
     loadSound(zombie, zombieBuffer, "zombie.wav");
     loadSound(hit, hitBuffer, "collisionSound.wav");
     loadSound(walking, walkingBuffer, "walk.wav");
+    loadSound(sword, swordBuffer, "collect2.wav");
+    loadSound(torch, torchBuffer, "collect3.wav");
 }

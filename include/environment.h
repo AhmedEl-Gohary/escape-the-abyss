@@ -15,7 +15,7 @@ public:
     bool isLoosing{false};
     GLuint shaderProgram;
     glm::mat4 &projection;
-    float score;
+    int score;
 
     virtual ~Environment() = default;
     Environment(GLuint shaderProgram, glm::mat4 &projection) : shaderProgram(shaderProgram), projection(projection) {}

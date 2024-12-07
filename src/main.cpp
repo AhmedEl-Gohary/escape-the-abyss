@@ -77,7 +77,7 @@ void setupOpenGL() {
     glEnable(GL_DEPTH_TEST);
     shaderProgram = createShaderProgram("../src/shaders/vertex_shader.glsl", "../src/shaders/fragment_shader.glsl");
 
-    environment = new Wood(shaderProgram, projection);
+    environment = new House(shaderProgram, projection);
     environment->init();
 }
 
@@ -118,28 +118,21 @@ void onMouseClick(int button, int state, int x, int y) {
     environment->onMouseClick(button, state, x, y);
 }
 
-void renderBitmapString(float x, float y, void* font, const char* string, float r, float g, float b) {
-    glColor3f(r, g, b);  // Set text color
-    glRasterPos2f(x, y);
-    for (const char* c = string; *c != '\0'; c++) {
-        glutBitmapCharacter(font, *c);
-    }
-}
-
-float score;
-
-void displayWinScreen() {
-    // Save the current projection matrix
+int score;
+void renderBitmapString(float x, float y, void* font, const std::string& text,
+                        float r, float g, float b) {
+    // Ensure we're in pure 2D mode
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
 
-    // Set up an orthographic projection
     int width = glutGet(GLUT_WINDOW_WIDTH);
     int height = glutGet(GLUT_WINDOW_HEIGHT);
-    gluOrtho2D(0, width, 0, height);
 
-    // Switch to modelview matrix
+    // Use screen coordinates directly
+    glOrtho(0, width, 0,
+            height, -1, 1);
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
@@ -147,84 +140,97 @@ void displayWinScreen() {
     // Disable depth testing
     glDisable(GL_DEPTH_TEST);
 
-    // Clear with a darker, more muted green
-    glClearColor(0.0f, 0.2f, 0.0f, 1.0f);  // Darker green
-    glClear(GL_COLOR_BUFFER_BIT);
+    // Disable current shader
+    glUseProgram(0);
 
-    // Render "YOU WIN!" text
-    int centerX = width / 2;
-    int centerY = height / 2;
+    // Set text color
+    glColor3f(r, g, b);
 
-    std::string string = "YOU WIN! your score is" + std::to_string(score);
+    // Calculate text width using stroke font
+    float totalWidth = 0;
+    for (char c : text) totalWidth += glutStrokeWidth(GLUT_STROKE_ROMAN, c);
 
-    // Large text in bright yellow for contrast
-    renderBitmapString(
-            centerX - 150,
-            centerY,
-            GLUT_BITMAP_TIMES_ROMAN_24,
-            string.c_str(),
-            1.0f, 1.0f, 0.0f  // Bright yellow
-    );
+    // Position text at bottom center
+    float scaleFactor = 0.6f;  // Adjust for desired size
+    float xPos = (width - totalWidth * scaleFactor) / 2.0f;
+    float yPos = height * 0.15f;
 
-    // Restore previous matrices and state
-    glEnable(GL_DEPTH_TEST);
+    // Translate and scale
+    glPushMatrix();
+    glTranslatef(xPos, yPos, 0);
+    glScalef(scaleFactor, scaleFactor, scaleFactor);
+
+    for (char c : text) {
+        glLineWidth(13.0f);
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+        glLineWidth(1.0f);
+    }
+
+    glPopMatrix();
+
+    // Restore matrices
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
+}
+
+void displayWinScreen() {
+    // Get window dimensions
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+
+    // Clear with a darker green
+    glClearColor(0.0f, 0.2f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Calculate dynamic positioning
+    float centerX = width / 2.0f;
+    float centerY = height / 2.0f;
+
+    // Large "YOU WIN!" text
+    renderBitmapString(
+            centerX - 100,  // Adjusted X position
+            centerY,
+            GLUT_BITMAP_TIMES_ROMAN_24,
+            "YOU WIN!\nYour Score is: " + std::to_string(score),
+            1.0f, 1.0f, 1.0f  // Bright yellow
+    );
 
     glutSwapBuffers();
 }
 
 void displayGameOverScreen() {
-    // Save the current projection matrix
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // Set up an orthographic projection
+    // Get window dimensions
     int width = glutGet(GLUT_WINDOW_WIDTH);
     int height = glutGet(GLUT_WINDOW_HEIGHT);
-    gluOrtho2D(0, width, 0, height);
 
-    // Switch to modelview matrix
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    // Clear with a darker red
+    glClearColor(0.3f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Disable depth testing
-    glDisable(GL_DEPTH_TEST);
+    // Calculate dynamic positioning
+    float centerX = width / 2.0f;
+    float centerY = height / 2.0f;
 
-    // Clear with a darker, more muted red
-    glClearColor(0.3f, 0.0f, 0.0f, 1.0f);  // Darker red
-
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // Render "GAME OVER" text
-    int centerX = width / 2;
-    int centerY = height / 2;
-
-    // Large text in bright red for contrast
+    // Large "GAME OVER" text
     renderBitmapString(
-            centerX - 150,
+            centerX - 150,  // Adjusted X position
             centerY,
             GLUT_BITMAP_TIMES_ROMAN_24,
             "GAME OVER",
             1.0f, 0.0f, 0.0f  // Bright red
     );
 
-    // Restore previous matrices and state
-    glEnable(GL_DEPTH_TEST);
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-
     glutSwapBuffers();
 }
 
 void update(int value) {
-    if (!environment) return;
+    if (!environment) {
+        glutPostRedisplay();
+        glutTimerFunc(16, update, 0);
+        return;
+    }
     environment->updateScene();
     if (!environment->isRunning) { // scene ended
         if (dynamic_cast<House*>(environment)) {
@@ -234,10 +240,12 @@ void update(int value) {
         } else if (dynamic_cast<Wood*>(environment)) {
             environment->cleanUp();
             if (environment->isWinning){
+                // game win!
                 score = environment->score;
                 glutDisplayFunc(displayWinScreen);
             } else {
-                glutDisplayFunc(displayWinScreen);
+                // game over!
+                glutDisplayFunc(displayGameOverScreen);
             }
             glutPostRedisplay();
             environment = nullptr;

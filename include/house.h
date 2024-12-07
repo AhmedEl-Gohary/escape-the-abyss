@@ -53,6 +53,9 @@ private:
     bool isFlashlightEquipped{};
     bool isFlashlightOn{};
     bool isShowingPickupPrompt{};
+    int flickerCount{};
+
+    const int MAX_FLICKER_COUNT = 5;
 
     // sounds
     sf::SoundBuffer backgroundBuffer, doorOpeningBuffer, walkingBuffer, collectBuffer, doorLockedBuffer;

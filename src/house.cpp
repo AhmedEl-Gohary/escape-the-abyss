@@ -420,7 +420,7 @@ void House::init() {
     generateLightbulb();
     generateFlashlight();
     loadSounds();
-    playSound(background, 35, true);
+//    playSound(background, 35, true);
 }
 
 float generateFlickerIntensity() {
@@ -468,10 +468,17 @@ void House::renderScene() {
     glUniform3fv(glGetUniformLocation(shaderProgram, "lightBulbPos"), 1,
                 glm::value_ptr(glm::vec3(lightbulbTransformation[3]) +
                 glm::vec3(1.0f, 0.0f, 0.0f)));
+    static float flickerIntensity = generateFlickerIntensity() + 1;
+    if (flickerCount == MAX_FLICKER_COUNT){
+        flickerIntensity = generateFlickerIntensity() + 1;
+        flickerCount = 0;
+    } else {
+        flickerCount ++;
+    }
     glUniform1f(glGetUniformLocation(shaderProgram, "lightBulbFlicker"),
-                generateFlickerIntensity() + 1);
+                flickerIntensity);
     glUniform1f(glGetUniformLocation(shaderProgram, "lightBulbAmbientStrength"),
-                4.0f);
+                6.0f);
 
     // flashlight
     glUniform1f(glGetUniformLocation(shaderProgram, "isFlashlightOn"), isFlashlightOn);
